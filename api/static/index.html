@@ -14,7 +14,6 @@
   --text:#e8e0d4;--text-dim:#8b7d5e;--text-muted:#6b5d4e;
   --orange:#e8860c;--red:#c62828;--blue:#1a73e8;--green:#2e8b57;
   --radius:12px;--radius-sm:8px;
-  --spring: cubic-bezier(.34,1.56,.64,1);--ease-out: cubic-bezier(.22,1,.36,1);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html{font-size:16px}
@@ -39,7 +38,6 @@ body{
 }
 .header .sub{font-size:.6rem;color:var(--text-muted);margin-top:2px;letter-spacing:1px}
 
-/* ── Container ── */
 .container{max-width:480px;margin:0 auto;padding:10px}
 .felt{
   background:radial-gradient(ellipse at 50% 0%,#1a4a2e 0%,var(--felt) 100%);
@@ -49,7 +47,6 @@ body{
 }
 .felt::before{content:'';position:absolute;inset:-3px;border-radius:22px;background:linear-gradient(135deg,rgba(212,175,55,0.08),transparent 60%,rgba(212,175,55,0.03));pointer-events:none}
 
-/* ── Section Label ── */
 .section-label{
   font-size:.65rem;font-weight:700;color:var(--text-dim);
   text-transform:uppercase;letter-spacing:2px;
@@ -57,7 +54,20 @@ body{
 }
 .section-label::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(212,175,55,0.2),transparent)}
 
-/* ── Tile Buttons ── */
+/* ── Tabs ── */
+.tabs{display:flex;gap:4px;margin-bottom:10px}
+.tab{
+  flex:1;text-align:center;padding:8px;border-radius:8px 8px 0 0;
+  font-size:.7rem;font-weight:700;cursor:pointer;
+  background:rgba(0,0,0,0.15);color:var(--text-dim);
+  border:1px solid transparent;transition:all .15s;
+}
+.tab.active{background:rgba(212,175,55,0.08);color:var(--gold-pale);border-color:rgba(212,175,55,0.15)}
+.tab:active{transform:scale(.97)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* ── Tile Grid ── */
 .tile-grid{
   display:grid;grid-template-columns:repeat(9,1fr);gap:4px;margin-bottom:6px;
 }
@@ -68,27 +78,27 @@ body{
 .tile-btn{
   aspect-ratio:1;border-radius:6px;border:1px solid rgba(212,175,55,0.12);
   background:rgba(0,0,0,0.2);color:var(--text-dim);
-  font-size:.75rem;font-weight:700;cursor:pointer;transition:all .15s;
+  font-size:.75rem;font-weight:700;cursor:pointer;transition:all .1s;
   display:flex;align-items:center;justify-content:center;
   user-select:none;-webkit-tap-highlight-color:transparent;
   min-height:36px;
 }
-.tile-btn:active{transform:scale(.93)}
-.tile-btn.selected{
-  background:rgba(212,175,55,0.2);color:var(--gold-pale);
-  border-color:rgba(212,175,55,0.4);box-shadow:0 0 8px rgba(212,175,55,0.15);
-}
-.tile-btn.multi{position:relative}
+.tile-btn:active{transform:scale(.9)}
+.tile-btn.selected{background:rgba(212,175,55,0.18);color:var(--gold-pale);border-color:rgba(212,175,55,0.35)}
+.tile-btn.p1-selected{background:rgba(230,57,70,0.15);color:#ff6b6b;border-color:rgba(230,57,70,0.3)}
+.tile-btn.p2-selected{background:rgba(26,115,232,0.15);color:#64b5f6;border-color:rgba(26,115,232,0.3)}
+.tile-btn.p3-selected{background:rgba(46,125,50,0.15);color:#66bb6a;border-color:rgba(46,125,50,0.3)}
 .tile-btn .count-badge{
   position:absolute;top:-6px;right:-6px;
   background:var(--gold);color:#000;font-size:.6rem;font-weight:800;
   width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;
   box-shadow:0 2px 6px rgba(0,0,0,0.4);
 }
+.tile-btn.small{font-size:.65rem;min-height:28px;aspect-ratio:1}
 
 /* ── Tile Counter ── */
 .tile-counter{
-  display:flex;align-items:center;gap:8px;margin-bottom:10px;
+  display:flex;align-items:center;gap:8px;margin-bottom:8px;
   padding:8px 12px;background:rgba(0,0,0,0.15);border-radius:8px;
 }
 .tile-counter .count{font-size:1.1rem;font-weight:800;color:var(--gold-pale)}
@@ -96,9 +106,36 @@ body{
 .tile-counter .action-btn{
   background:rgba(212,175,55,0.1);border:1px solid rgba(212,175,55,0.15);
   color:var(--gold-pale);padding:6px 14px;border-radius:6px;
-  font-size:.7rem;font-weight:700;cursor:pointer;transition:all .15s;
+  font-size:.7rem;font-weight:700;cursor:pointer;transition:all .1s;
 }
 .tile-counter .action-btn:active{background:rgba(212,175,55,0.2)}
+
+/* ── Toggle Switch ── */
+.toggle-bar{
+  display:flex;align-items:center;gap:8px;margin-bottom:6px;padding:6px 0;
+  border-top:1px solid rgba(212,175,55,0.06);border-bottom:1px solid rgba(212,175,55,0.06);
+}
+.toggle-bar .label{font-size:.65rem;color:var(--text-dim);flex:1}
+.toggle-btn{
+  padding:4px 12px;border-radius:6px;font-size:.65rem;font-weight:700;
+  cursor:pointer;transition:all .1s;
+  background:rgba(0,0,0,0.2);color:var(--text-dim);border:1px solid transparent;
+}
+.toggle-btn.on{background:rgba(212,175,55,0.12);color:var(--gold-pale);border-color:rgba(212,175,55,0.2)}
+.toggle-btn:active{transform:scale(.95)}
+
+/* ── Players Row ── */
+.players-row{display:flex;gap:6px;margin-bottom:4px}
+.player-tab{
+  flex:1;text-align:center;padding:6px;border-radius:6px;
+  font-size:.6rem;font-weight:700;cursor:pointer;
+  background:rgba(0,0,0,0.12);color:var(--text-muted);transition:all .1s;
+}
+.player-tab.active{background:rgba(212,175,55,0.08);color:var(--gold-pale)}
+.player-tab.p1{color:#ff6b6b}.player-tab.p1.active{background:rgba(230,57,70,0.12);color:#ff6b6b;border-color:rgba(230,57,70,0.2)}
+.player-tab.p2{color:#64b5f6}.player-tab.p2.active{background:rgba(26,115,232,0.12);color:#64b5f6}
+.player-tab.p3{color:#66bb6a}.player-tab.p3.active{background:rgba(46,125,50,0.12);color:#66bb6a}
+.player-tab:active{transform:scale(.95)}
 
 /* ── Result Area ── */
 .result-area{margin-top:10px;display:none}
@@ -107,36 +144,108 @@ body{
   background:rgba(0,0,0,0.2);border-radius:10px;
   padding:10px 12px;margin-bottom:6px;border:1px solid rgba(212,175,55,0.08);
 }
-.result-label{font-size:.6rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
+.result-label{
+  font-size:.6rem;font-weight:700;color:var(--text-dim);
+  text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;
+}
 .result-value{font-size:.95rem;font-weight:700}
 .result-value.gold{color:var(--gold-pale)}
 .result-value.green{color:var(--green)}
 .result-value.orange{color:var(--orange)}
 .result-value.red{color:var(--red)}
 
+/* ── Discard Options ── */
+.discard-row{
+  display:flex;align-items:center;gap:8px;padding:6px 0;
+  border-bottom:1px solid rgba(212,175,55,0.05);cursor:pointer;
+  transition:background .1s;border-radius:4px;padding:4px 8px;
+}
+.discard-row:active{background:rgba(212,175,55,0.04)}
+.discard-row .tile-icon{
+  width:28px;height:34px;border-radius:4px;
+  background:rgba(212,175,55,0.12);border:1px solid rgba(212,175,55,0.15);
+  text-align:center;line-height:34px;font-size:.7rem;font-weight:800;
+  color:var(--gold-pale);flex-shrink:0;
+}
+.discard-row .info{flex:1}
+.discard-row .info .name{font-size:.8rem;font-weight:700;color:var(--text)}
+.discard-row .info .detail{font-size:.6rem;color:var(--text-dim)}
+.discard-row .stats{text-align:right}
+.discard-row .stats .post{font-size:.75rem;font-weight:700;color:var(--green)}
+.discard-row .stats .accept{font-size:.6rem;color:var(--text-muted)}
+.danger-badge{
+  padding:2px 6px;border-radius:4px;font-size:.55rem;font-weight:700;
+}
+.danger-badge.low{background:rgba(46,139,87,0.2);color:#4caf50}
+.danger-badge.mid{background:rgba(232,134,12,0.2);color:var(--orange)}
+.danger-badge.high{background:rgba(198,40,40,0.2);color:var(--red)}
+
+/* ── Action Options ── */
+.action-row{
+  display:flex;align-items:center;gap:8px;padding:6px 8px;
+  border-bottom:1px solid rgba(212,175,55,0.05);border-radius:4px;
+  transition:background .1s;
+}
+.action-row:active{background:rgba(212,175,55,0.04)}
+.action-badge{
+  padding:3px 8px;border-radius:6px;font-size:.65rem;font-weight:800;flex-shrink:0;
+}
+.action-badge.chi{background:rgba(33,150,243,0.15);color:#42a5f5}
+.action-badge.pon{background:rgba(255,152,0,0.15);color:#ffa726}
+.action-badge.kan{background:rgba(233,30,99,0.15);color:#ec407a}
+.action-badge.tsumo{background:rgba(212,175,55,0.2);color:var(--gold)}
+
 /* ── Listen Table ── */
-.listen-table{width:100%;border-collapse:collapse;margin-top:6px}
+.listen-table{width:100%;border-collapse:collapse;margin-top:4px}
 .listen-table th{
   font-size:.6rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;
   padding:4px 6px;text-align:left;border-bottom:1px solid rgba(212,175,55,0.1);
 }
 .listen-table td{
-  font-size:.8rem;padding:5px 6px;border-bottom:1px solid rgba(212,175,55,0.05);
+  font-size:.75rem;padding:4px 6px;border-bottom:1px solid rgba(212,175,55,0.05);
 }
 .listen-table .tile-name{font-weight:700;color:var(--gold-pale)}
-.listen-table .remaining{color:var(--text)}
 .listen-table .fan{color:var(--orange);font-weight:700}
 .listen-table .score{color:var(--green);font-weight:700}
-.listen-table tr:first-child td{font-size:.85rem}
-.listen-table tr:first-child .tile-name{color:var(--gold);font-size:.9rem}
 
-/* ── Acceptance ── */
+/* ── Acceptance Chips ── */
 .acceptance-chips{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
 .acceptance-chip{
   padding:3px 8px;border-radius:12px;
   background:rgba(212,175,55,0.08);border:1px solid rgba(212,175,55,0.12);
   font-size:.7rem;color:var(--text);
 }
+
+/* ── Defense ├▌ð ── */
+.defense-grid{display:flex;gap:10px}
+.defense-col{flex:1}
+.defense-tile{
+  display:inline-block;padding:2px 6px;margin:2px;border-radius:4px;
+  font-size:.65rem;font-weight:700;
+}
+.defense-tile.danger{background:rgba(198,40,40,0.15);color:var(--red)}
+.defense-tile.safe{background:rgba(46,139,87,0.15);color:#4caf50;opacity:.7}
+
+/* ── Input Fields ── */
+.input-row{display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap}
+.input-row label{font-size:.65rem;color:var(--text-dim);min-width:70px}
+.input-field{
+  flex:1;padding:6px 10px;border-radius:6px;border:1px solid rgba(212,175,55,0.12);
+  background:rgba(0,0,0,0.2);color:var(--text);font-size:.7rem;
+  outline:none;min-width:60px;
+}
+.input-field:focus{border-color:rgba(212,175,55,0.3)}
+.input-field::placeholder{color:var(--text-muted)}
+select.input-field{appearance:auto;cursor:pointer}
+
+/* ── Analyze Button ── */
+.analyze-btn{
+  width:100%;padding:12px;border-radius:10px;border:none;
+  background:linear-gradient(135deg,rgba(212,175,55,0.2),rgba(212,175,55,0.1));
+  color:var(--gold-pale);font-size:1rem;font-weight:800;
+  cursor:pointer;transition:all .1s;letter-spacing:2px;margin-top:4px;
+}
+.analyze-btn:active{transform:scale(.97);background:linear-gradient(135deg,rgba(212,175,55,0.25),rgba(212,175,55,0.15))}
 
 /* ── Loading ── */
 .loading{text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
@@ -152,37 +261,107 @@ body{
 
 <div class="header">
   <h1>🀄 国标麻将</h1>
-  <div class="sub">决策助手 · 通行规则 8番起胡</div>
+  <div class="sub">决策助手 · 全面牌局分析 · 8番起胡</div>
 </div>
 
 <div class="container">
 <div class="felt" id="app">
 
-  <!-- Tile Counter -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('hand',this)">手牌</div>
+  <div class="tab" onclick="switchTab('game',this)">牌局</div>
+</div>
+
+<!-- ════════════════ TAB 1: HAND ════════════════ -->
+<div class="tab-panel active" id="tab-hand">
+
   <div class="tile-counter">
     <span class="count" id="tileCount">0</span>
     <span class="label">张手牌</span>
     <button class="action-btn" onclick="clearHand()">清空</button>
   </div>
 
-  <!-- Tile Selection Grid -->
   <div id="tileGrid"></div>
 
-  <!-- Analyze Button -->
-  <div style="margin-top:10px">
-    <button onclick="analyze()" style="
-      width:100%;padding:12px;border-radius:10px;border:none;
-      background:linear-gradient(135deg,rgba(212,175,55,0.2),rgba(212,175,55,0.1));
-      color:var(--gold-pale);font-size:1rem;font-weight:800;
-      cursor:pointer;transition:all .15s;letter-spacing:2px;
-    ">分析手牌</button>
+</div>
+
+<!-- ════════════════ TAB 2: GAME ════════════════ -->
+<div class="tab-panel" id="tab-game">
+
+  <div class="section-label">各家舍牌</div>
+  <div class="players-row" id="playersRow">
+    <div class="player-tab p1 active" onclick="switchPlayer(1)">下家</div>
+    <div class="player-tab p2" onclick="switchPlayer(2)">对家</div>
+    <div class="player-tab p3" onclick="switchPlayer(3)">上家</div>
+  </div>
+  <div id="discardGrid"></div>
+  <div style="font-size:.6rem;color:var(--text-muted);text-align:right;margin:2px 0 6px">
+    <span>点牌标记舍牌 · <span id="discardPlayerLabel">下家</span>已出 <span id="discardCount">0</span> 张</span>
   </div>
 
-  <!-- Result Area -->
-  <div class="result-area" id="resultArea">
-    <div class="section-label">分析结果</div>
-    <div id="resultContent"></div>
+  <div class="toggle-bar">
+    <span class="label">他家副露（吃碰杠）</span>
+    <div class="toggle-btn" id="meldToggle" onclick="toggleMeldInput()">展开</div>
   </div>
+  <div id="opponentMeldArea" style="display:none">
+    <div class="input-row">
+      <label>座位</label>
+      <select class="input-field" id="meldSeat">
+        <option value="1">下家</option>
+        <option value="2">对家</option>
+        <option value="3">上家</option>
+      </select>
+    </div>
+    <div class="input-row">
+      <label>面子编码</label>
+      <input class="input-field" id="meldInput" placeholder="如 0,4,8 (三段1万)">
+    </div>
+    <button class="action-btn" style="font-size:.65rem;padding:6px" onclick="addOpponentMeld()">记录副露</button>
+    <div id="meldList" style="margin-top:6px;font-size:.7rem;color:var(--text-dim)"></div>
+  </div>
+
+  <div class="toggle-bar">
+    <span class="label">他家打牌（吃碰杠判断）</span>
+    <div class="toggle-btn" id="discardToggle" onclick="toggleLastDiscard()">展开</div>
+  </div>
+  <div id="lastDiscardArea" style="display:none">
+    <div id="lastDiscardGrid"></div>
+    <div style="font-size:.6rem;color:var(--text-muted);margin-top:2px">点击选择对方刚打出的牌</div>
+  </div>
+
+  <div class="input-row">
+    <label>摸牌</label>
+    <select class="input-field" id="isSelfDrawn">
+      <option value="true">自家摸牌</option>
+      <option value="false">他家出牌</option>
+    </select>
+  </div>
+  <div class="input-row">
+    <label>座风</label>
+    <select class="input-field" id="seatWindSelect">
+      <option value="0">东</option>
+      <option value="1">南</option>
+      <option value="2">西</option>
+      <option value="3">北</option>
+    </select>
+    <label style="margin-left:12px;min-width:auto">圈风</label>
+    <select class="input-field" id="roundWindSelect">
+      <option value="0">东圈</option>
+      <option value="1">南圈</option>
+      <option value="2">西圈</option>
+      <option value="3">北圈</option>
+    </select>
+  </div>
+
+</div>
+
+<!-- ════════════════ ANALYZE BUTTON ════════════ -->
+<button class="analyze-btn" onclick="analyze()">🎯 全面分析</button>
+
+<!-- ════════════════ RESULT ════════════════ -->
+<div class="result-area" id="resultArea">
+  <div id="resultContent"></div>
+</div>
 
 </div>
 </div>
@@ -197,15 +376,14 @@ const suits = [
   { id: 4, name: '箭', color: '#c62828', tiles: [1,2,3] },
 ];
 
+function tileCode(suit, rank) { return suit * 28 + (rank - 1) * 4; }
+
 const ALL_TILES = [];
 for (let s = 0; s < suits.length; s++) {
   for (let r of suits[s].tiles) {
-    ALL_TILES.push({ code: s * 28 + (r - 1) * 4, suit: s, rank: r, name: suits[s].name });
+    ALL_TILES.push({ code: tileCode(s, r), suit: s, rank: r, name: suits[s].name });
   }
 }
-
-// Hand state: { code -> count }
-let hand = {};
 
 function tileName(code) {
   const t = ALL_TILES.find(x => x.code === code);
@@ -215,53 +393,68 @@ function tileName(code) {
   if (t.suit === 3) return ['东','南','西','北'][t.rank-1];
   return ['中','发','白'][t.rank-1];
 }
+function tileNameShort(code) {
+  const t = ALL_TILES.find(x => x.code === code);
+  if (!t) return '?';
+  return (t.suit <= 2 ? t.rank : ['东','南','西','北','中','发','白'][t.rank-1 + (t.suit===3?0:4)]) + 
+         (t.suit <= 2 ? ['','万','条','饼'][t.suit] : '');
+}
 
-// ── Render Grid ──
+// ── State ──
+let hand = {};             // { code -> count }
+let discards = {1:[], 2:[], 3:[]};  // 1=下家, 2=对家, 3=上家
+let opponentMelds = {1:[], 2:[], 3:[]};  // { seat -> [[tile codes]] }
+let lastDiscard = null;
+let currentPlayer = 1;     // 当前选中的舍牌玩家
+let showLastDiscard = false;
+let showMeldInput = false;
+
+function totalHandCount() { return Object.values(hand).reduce((a, b) => a + b, 0); }
+function totalDiscardCount(player) { return discards[player] ? discards[player].length : 0; }
+
+// ── Tab Switching ──
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+function switchPlayer(p) {
+  currentPlayer = p;
+  document.querySelectorAll('.player-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.player-tab.p${p}`).classList.add('active');
+  renderDiscardGrid();
+  document.getElementById('discardPlayerLabel').textContent = 
+    ['','下家','对家','上家'][p];
+  document.getElementById('discardCount').textContent = totalDiscardCount(p);
+}
+
+// ── Hand Grid ──
 function renderGrid() {
   let html = '';
   for (let s = 0; s < suits.length; s++) {
     const suit = suits[s];
-    let gridClass = suit.tiles.length === 9 ? 'tile-grid' : 
-                    suit.tiles.length === 4 ? 'tile-grid' : 'tile-grid';
-    html += `<div class="tile-group-label">${suit.name}</div>`;
-    html += `<div class="${gridClass}">`;
+    html += `<div class="tile-group-label">${suit.name}</div><div class="tile-grid">`;
     for (let r of suit.tiles) {
-      const code = s * 28 + (r - 1) * 4;
+      const code = tileCode(s, r);
       const count = hand[code] || 0;
       const selected = count > 0;
       html += `<div class="tile-btn${selected?' selected':''}${count>1?' multi':''}" 
-                     onclick="addTile(${code})"
-                     data-code="${code}">`;
-      const names = ['一','二','三','四','五','六','七','八','九','东','南','西','北','中','发','白'];
-      const label = s <= 2 ? names[r-1] : 
-                    s === 3 ? ['东','南','西','北'][r-1] :
-                    ['中','发','白'][r-1];
-      html += label;
-      if (count > 1) html += `<span class="count-badge">${count}</span>`;
-      html += `</div>`;
+                     onclick="addTile(${code})">
+                ${tileNameShort(code)}${count>1?`<span class=\"count-badge\">${count}</span>`:''}</div>`;
     }
     html += `</div>`;
   }
   document.getElementById('tileGrid').innerHTML = html;
-  document.getElementById('tileCount').textContent = totalTiles();
-}
-
-function totalTiles() {
-  return Object.values(hand).reduce((a, b) => a + b, 0);
+  document.getElementById('tileCount').textContent = totalHandCount();
 }
 
 function addTile(code) {
-  const maxPerTile = code < 3*28 ? 4 : (code < 4*28 ? 3 : 3);
-  // 风牌: 3张/种, 箭牌: 4张/种? No, all suits have 4 copies except wind (3 per type in guobiao)
-  // Actually let me just cap at 4 for all
-  const cap = 4;
-  if ((hand[code] || 0) >= cap) return;
-  
-  // If we already have 14+ tiles, don't add more
-  if (totalTiles() >= 14) return;
-  
+  if ((hand[code] || 0) >= 4) return;
   hand[code] = (hand[code] || 0) + 1;
   renderGrid();
+  document.getElementById('resultArea').classList.remove('show');
 }
 
 function clearHand() {
@@ -270,31 +463,156 @@ function clearHand() {
   document.getElementById('resultArea').classList.remove('show');
 }
 
-// ── Analyze ──
-async function analyze() {
-  const n = totalTiles();
-  // Generate tile list from hand
+// ── Discard Grid ──
+function renderDiscardGrid() {
+  let html = '';
+  for (let s = 0; s < suits.length; s++) {
+    const suit = suits[s];
+    html += `<div class="tile-group-label">${suit.name}</div><div class="tile-grid">`;
+    for (let r of suit.tiles) {
+      const code = tileCode(s, r);
+      const cnt = (discards[currentPlayer] || []).filter(c => c === code).length;
+      html += `<div class="tile-btn${cnt>0?' p'+currentPlayer+'-selected':''}${cnt>1?' multi':''}" 
+                     onclick="addDiscard(${code})">
+                ${tileNameShort(code)}${cnt>1?`<span class=\"count-badge\">${cnt}</span>`:''}</div>`;
+    }
+    html += `</div>`;
+  }
+  document.getElementById('discardGrid').innerHTML = html;
+  document.getElementById('discardCount').textContent = totalDiscardCount(currentPlayer);
+}
+
+function addDiscard(code) {
+  // Toggle: add or remove
+  const idx = discards[currentPlayer].indexOf(code);
+  if (idx >= 0) {
+    discards[currentPlayer].splice(idx, 1);
+  } else {
+    discards[currentPlayer].push(code);
+  }
+  renderDiscardGrid();
+  document.getElementById('resultArea').classList.remove('show');
+}
+
+// ── Last Discard Grid (for chi/pon/kan) ──
+function renderLastDiscardGrid() {
+  let html = '';
+  for (let s = 0; s < suits.length; s++) {
+    const suit = suits[s];
+    html += `<div class="tile-group-label">${suit.name}</div><div class="tile-grid">`;
+    for (let r of suit.tiles) {
+      const code = tileCode(s, r);
+      const selected = lastDiscard === code;
+      html += `<div class="tile-btn${selected?' selected':''} small" 
+                     onclick="setLastDiscard(${code})">${tileNameShort(code)}</div>`;
+    }
+    html += `</div>`;
+  }
+  document.getElementById('lastDiscardGrid').innerHTML = html;
+}
+
+function setLastDiscard(code) {
+  lastDiscard = lastDiscard === code ? null : code;
+  renderLastDiscardGrid();
+}
+
+function toggleLastDiscard() {
+  showLastDiscard = !showLastDiscard;
+  document.getElementById('lastDiscardArea').style.display = showLastDiscard ? 'block' : 'none';
+  document.getElementById('discardToggle').textContent = showLastDiscard ? '收起' : '展开';
+  renderLastDiscardGrid();
+}
+
+// ── Opponent Melds ──
+function toggleMeldInput() {
+  showMeldInput = !showMeldInput;
+  document.getElementById('opponentMeldArea').style.display = showMeldInput ? 'block' : 'none';
+  document.getElementById('meldToggle').textContent = showMeldInput ? '收起' : '展开';
+}
+
+function addOpponentMeld() {
+  const seat = parseInt(document.getElementById('meldSeat').value);
+  const raw = document.getElementById('meldInput').value.trim();
+  if (!raw) return;
+  const codes = raw.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+  if (codes.length < 3) return;
+  
+  if (!opponentMelds[seat]) opponentMelds[seat] = [];
+  opponentMelds[seat].push(codes);
+  document.getElementById('meldInput').value = '';
+  updateMeldList();
+}
+
+function removeOpponentMeld(seat, idx) {
+  if (opponentMelds[seat]) opponentMelds[seat].splice(idx, 1);
+  updateMeldList();
+}
+
+function updateMeldList() {
+  let html = '';
+  for (const [seat, meldsList] of Object.entries(opponentMelds)) {
+    for (let i = 0; i < meldsList.length; i++) {
+      const m = meldsList[i];
+      const names = m.map(c => tileName(c)).join(' ');
+      const seatName = ['','下家','对家','上家'][parseInt(seat)];
+      html += `<div style="display:flex;justify-content:space-between;padding:2px 0">
+        <span>${seatName}: ${names} (${m.length}张)</span>
+        <span onclick="removeOpponentMeld(${seat},${i})" style="color:var(--red);cursor:pointer">✕</span>
+      </div>`;
+    }
+  }
+  if (!html) html = '<span style="color:var(--text-muted)">暂无记录</span>';
+  document.getElementById('meldList').innerHTML = html;
+}
+
+// ── Hand To List ──
+function handToList() {
   let tiles = [];
   for (const [code, count] of Object.entries(hand)) {
     for (let i = 0; i < count; i++) tiles.push(parseInt(code));
   }
   tiles.sort((a, b) => a - b);
+  return tiles;
+}
 
+// ── Analyze ──
+async function analyze() {
+  const tiles = handToList();
   if (tiles.length < 13) {
     document.getElementById('resultArea').classList.add('show');
-    document.getElementById('resultContent').innerHTML = `<div class="error-bar">至少需要 13 张牌才能分析</div>`;
+    document.getElementById('resultContent').innerHTML = 
+      `<div class="error-bar">至少需要 13 张牌才能分析（当前 ${tiles.length} 张）</div>`;
     return;
   }
 
   const resultDiv = document.getElementById('resultContent');
   resultDiv.innerHTML = `<div class="loading">分析中... 🀄</div>`;
   document.getElementById('resultArea').classList.add('show');
+  document.getElementById('resultArea').scrollIntoView({behavior:'smooth', block:'start'});
 
   try {
-    const resp = await fetch('/api/analyze', {
+    // Build request
+    const body = {
+      hand: tiles.slice(0, 14),
+      melds: [],
+      discards: {1: discards[1], 2: discards[2], 3: discards[3]},
+      opponent_melds: {},
+      seat_wind: parseInt(document.getElementById('seatWindSelect').value),
+      round_wind: parseInt(document.getElementById('roundWindSelect').value),
+      is_self_drawn: document.getElementById('isSelfDrawn').value === 'true',
+    };
+    
+    if (lastDiscard !== null) body.last_discard = lastDiscard;
+    
+    // Add opponent melds
+    for (const [seat, meldsList] of Object.entries(opponentMelds)) {
+      if (meldsList.length > 0) body.opponent_melds[seat] = meldsList;
+    }
+
+    const resp = await fetch('/api/game-analyze', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ hand: tiles.slice(0, 14) }),
+      body: JSON.stringify(body),
     });
     const data = await resp.json();
 
@@ -305,76 +623,171 @@ async function analyze() {
 
     let html = '';
 
-    // Shanten
+    // ── Shanten ──
     html += `<div class="result-card">
       <div class="result-label">向听数</div>
-      <div class="result-value ${data.shanten.min === 0 ? 'gold' : data.shanten.min <= 1 ? 'green' : 'orange'}">
-        ${data.shanten.min === 0 ? '🎯 听牌！' : `⬆ ${data.shanten.min} 上听`}
-        <span style="font-size:.7rem;color:var(--text-dim);font-weight:400"> · ${data.shanten.face_str}</span>
+      <div class="result-value ${data.shanten === 0 ? 'gold' : data.shanten <= 1 ? 'green' : data.shanten === -1 ? 'red' : 'orange'}">
+        ${data.shanten === -1 ? '🏆 胡牌！' : data.shanten === 0 ? '🎯 听牌！' : `⬆ ${data.shanten} 上听`}
+        <span style="font-size:.7rem;color:var(--text-dim);font-weight:400;margin-left:6px">
+          进张 ${data.acceptance} 张
+        </span>
       </div>`;
 
-    // Acceptance
-    if (data.shanten.acceptance_count > 0) {
-      html += `<div class="result-label" style="margin-top:6px">进张 ${data.shanten.acceptance_count} 张</div>
-        <div class="acceptance-chips">`;
-      for (const t of data.shanten.acceptance) {
-        html += `<span class="acceptance-chip">${tileName(t.code)}</span>`;
+    // Acceptance tiles
+    if (data.acceptance_tiles && data.acceptance_tiles.length > 0) {
+      html += `<div class="acceptance-chips">`;
+      for (const t of data.acceptance_tiles) {
+        html += `<span class="acceptance-chip">${tileNameShort(t.code)}</span>`;
       }
       html += `</div>`;
     }
     html += `</div>`;
 
-    // Listen options
-    if (data.listen && data.listen.length > 0) {
-      const best = data.listen[0];
-      html += `<div class="result-card">
-        <div class="result-label">🏆 最佳听牌</div>
-        <div class="result-value gold" style="font-size:1.1rem">
-          ${tileName(best.tile.code)} · ${best.fan}番 · 剩${best.remaining}张
-        </div>
-      </div>`;
-
-      html += `<div class="result-card">
-        <table class="listen-table">
-          <tr><th>牌</th><th>剩余</th><th>番</th><th>评分</th></tr>`;
-      for (const opt of data.listen) {
-        const isBest = opt === data.listen[0];
-        html += `<tr${isBest?' style="background:rgba(212,175,55,0.04)"':''}>
-          <td class="tile-name">${tileName(opt.tile.code)}</td>
-          <td class="remaining">×${opt.remaining}</td>
-          <td class="fan">${opt.fan}番</td>
-          <td class="score">${opt.score.toFixed(1)}</td>
-        </tr>`;
-      }
-      html += `</table></div>`;
-
-      // Show top fan items
-      if (best.fan_items && best.fan_items.length > 0) {
+    // ── Action Options (chi/pon/kan) ──
+    if (data.action_options && data.action_options.length > 0) {
+      html += `<div class="section-label">操作建议</div>`;
+      
+      // Separate tsumo from others
+      const tsumoActions = data.action_options.filter(a => a.action === 'tsumo');
+      const otherActions = data.action_options.filter(a => a.action !== 'tsumo');
+      
+      if (tsumoActions.length > 0) {
+        const a = tsumoActions[0];
         html += `<div class="result-card">
-          <div class="result-label">番种明细</div>`;
-        for (const item of best.fan_items.slice(0, 8)) {
-          html += `<div style="font-size:.75rem;padding:2px 0">
-            <span style="color:var(--text-dim)">${item.name}</span>
-            <span style="color:var(--orange);float:right">${item.fan}番</span>
+          <div class="action-row">
+            <span class="action-badge tsumo">胡</span>
+            <span style="font-size:.9rem;font-weight:700;color:var(--gold-pale)">
+              ${tileName(a.tiles[0].code)} · ${a.fan}番
+            </span>
+          </div>`;
+        if (a.fan_items && a.fan_items.length > 0) {
+          for (const item of a.fan_items.slice(0, 6)) {
+            html += `<div style="font-size:.65rem;padding:1px 8px;color:var(--text-dim)">
+              ${item.name}<span style="float:right;color:var(--orange)">${item.fan}番</span></div>`;
+          }
+        }
+        html += `</div>`;
+      }
+      
+      if (otherActions.length > 0) {
+        html += `<div class="result-card">`;
+        for (const a of otherActions) {
+          const actionLabel = {chi:'吃',pon:'碰',kan:'杠'}[a.action] || a.action;
+          const actClass = a.action;
+          const tileNames = a.tiles.map(t => tileName(t.code)).join('');
+          const acceptText = a.action === 'kan' ? '' : ` · 进张${a.acceptance}`;
+          const fanText = a.fan > 0 ? ` · ${a.fan}番` : '';
+          html += `<div class="action-row">
+            <span class="action-badge ${actClass}">${actionLabel}</span>
+            <span class="info" style="font-size:.8rem;font-weight:600">
+              ${tileNames}
+            </span>
+            <span style="margin-left:auto;font-size:.7rem;color:var(--green)">
+              ${a.post_shanten === 0 ? '听牌' : a.post_shanten === -1 ? '胡牌' : a.post_shanten+'上听'}${acceptText}${fanText}
+            </span>
           </div>`;
         }
         html += `</div>`;
       }
     }
 
-    // Discard advice for 14+ tiles
-    if (data.discard_advice && data.discard_advice.length > 0) {
-      html += `<div class="result-card">
-        <div class="result-label">出牌建议</div>`;
-      for (const da of data.discard_advice.slice(0, 3)) {
-        const tileCode = da.discard;
-        html += `<div style="font-size:.8rem;padding:4px 0;display:flex;justify-content:space-between;border-bottom:1px solid rgba(212,175,55,0.05)">
-          <span style="color:var(--gold-pale);font-weight:700">▶ 打 ${tileName(tileCode)}</span>
-          <span>⬇${da.shanten_after}上听 · 进张${da.acceptance_count}</span>
+    // ── Discard Options ──
+    if (data.discard_options && data.discard_options.length > 0) {
+      const best = data.discard_options[0];
+      html += `<div class="section-label">出牌建议</div>`;
+
+      // Best option highlighted
+      html += `<div class="result-card" style="border-color:rgba(212,175,55,0.2)">
+        <div class="result-label">🏆 最佳出牌</div>
+        <div class="discard-row" style="padding:4px 0">
+          <div class="tile-icon">${tileNameShort(best.tile.code)}</div>
+          <div class="info">
+            <div class="name">打 ${best.tile.name}</div>
+            <div class="detail">${best.reason}</div>
+          </div>
+          <div class="stats">
+            <div class="post">${best.post_shanten === 0?'听牌':best.post_shanten+'上听'}</div>
+            <div class="accept">进张${best.acceptance}</div>
+          </div>
         </div>`;
+
+      // All options
+      html += `<table class="listen-table">
+        <tr><th>出牌</th><th>后向听</th><th>进张</th><th>危险</th></tr>`;
+      for (const o of data.discard_options) {
+        const dangerClass = o.danger_level === '低' ? 'low' : o.danger_level === '中' ? 'mid' : 'high';
+        const isBest = o === data.discard_options[0];
+        html += `<tr${isBest?' style="background:rgba(212,175,55,0.04)"':''}>
+          <td><span class="tile-name">${tileName(o.tile.code)}</span></td>
+          <td>${o.post_shanten === 0 ? '听牌' : o.post_shanten+'上听'}</td>
+          <td>${o.acceptance}</td>
+          <td><span class="danger-badge ${dangerClass}">${o.danger_level}</span></td>
+        </tr>`;
+      }
+      html += `</table></div>`;
+    }
+
+    // ── Listen Analysis ──
+    if (data.listen_analysis && data.listen_analysis.is_tenpai && data.listen_analysis.options.length > 0) {
+      const best = data.listen_analysis.options[0];  
+      html += `<div class="section-label">听牌分析</div>`;
+      html += `<div class="result-card">
+        <div class="result-label">🏆 最佳听牌</div>
+        <div class="result-value gold" style="font-size:1rem">
+          ${tileNameShort(best.tile.code)} · ${best.fan}番 · 剩${best.remaining}张
+        </div>
+      </div>`;
+
+      if (best.fan_items && best.fan_items.length > 0) {
+        html += `<div class="result-card">`;
+        for (const item of best.fan_items.slice(0, 8)) {
+          html += `<div style="font-size:.7rem;padding:2px 0">
+            <span style="color:var(--text-dim)">${item.name}</span>
+            <span style="color:var(--orange);float:right">${item.fan}番</span>
+          </div>`;
+        }
+        html += `</div>`;
+      }
+
+      if (data.listen_analysis.options.length > 1) {
+        html += `<div class="result-card">
+          <table class="listen-table">
+            <tr><th>牌</th><th>剩</th><th>番</th><th>评分</th></tr>`;
+        for (const opt of data.listen_analysis.options) {
+          const isBest = opt === data.listen_analysis.options[0];
+          html += `<tr${isBest?' style="background:rgba(212,175,55,0.04)"':''}>
+            <td class="tile-name">${tileNameShort(opt.tile.code)}</td>
+            <td>×${opt.remaining}</td>
+            <td class="fan">${opt.fan}番</td>
+            <td class="score">${opt.score.toFixed(1)}</td>
+          </tr>`;
+        }
+        html += `</table></div>`;
+      }
+    }
+
+    // ── Defense ──
+    if (data.defense && data.defense.dangerous_tiles && data.defense.dangerous_tiles.length > 0) {
+      html += `<div class="section-label">防守信息</div>`;
+      html += `<div class="result-card">
+        <div class="result-label">⚡ 危险牌（避免打出）</div>
+        <div>`;
+      for (const d of data.defense.dangerous_tiles.slice(0, 10)) {
+        html += `<span class="defense-tile danger">${tileNameShort(d.tile)}</span>`;
+      }
+      html += `</div>`;
+      if (data.defense.safe_tiles && data.defense.safe_tiles.length > 0) {
+        html += `<div class="result-label" style="margin-top:6px">✅ 安全牌</div><div>`;
+        for (const s of data.defense.safe_tiles.slice(0, 8)) {
+          html += `<span class="defense-tile safe">${tileNameShort(s.tile)}</span>`;
+        }
+        html += `</div>`;
       }
       html += `</div>`;
     }
+
+    html += `<div style="text-align:center;font-size:.55rem;color:var(--text-muted);margin-top:8px">
+      ${data.hand_display || ''}</div>`;
 
     resultDiv.innerHTML = html;
 
@@ -385,7 +798,8 @@ async function analyze() {
 
 // ── Init ──
 renderGrid();
+renderDiscardGrid();
+renderLastDiscardGrid();
 </script>
-
 </body>
 </html>

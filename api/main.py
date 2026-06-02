@@ -10,7 +10,7 @@ General Mahjong Assist — FastAPI Web API
 from __future__ import annotations
 import os, sys, logging, traceback
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Dict
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -22,6 +22,10 @@ from pydantic import BaseModel, Field
 from core.tile import encode, decode, tile_name, TOTAL_TILES, WAN, TIAO, BING, FENG, JIAN
 from core.shanten import calculate_shanten, discard_analysis
 from decision.listen_engine import analyze_listen
+from decision.game_engine import (
+    GameState, full_analysis,
+    DiscardOption, ActionOption, DefenseInfo,
+)
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"),
                     format="%(asctime)s [%(levelname)s] %(message)s")
@@ -76,6 +80,60 @@ class AnalyzeResponse(BaseModel):
     listen: Optional[List[ListenOption]] = None
     discard_advice: Optional[List[dict]] = None
     raw_hand: str
+
+
+# ── Game Analyze 输入/响应模型 ───────────────────────
+
+class GameAnalyzeRequest(BaseModel):
+    hand: List[int] = Field(..., min_length=13, max_length=14, description="手牌编码列表")
+    melds: Optional[List[List[int]]] = Field(default=None, description="自家副露")
+    discards: Optional[Dict[str, List[int]]] = Field(
+        default=None, description="各家舍牌 {座位: [编码]}，座位0=自家(不填)"
+    )
+    opponent_melds: Optional[Dict[str, List[List[int]]]] = Field(
+        default=None, description="他家副露 {座位([[面子], ...])}"
+    )
+    seat_wind: int = Field(default=0, ge=0, le=3, description="座位风 0=东 1=南 2=西 3=北")
+    round_wind: int = Field(default=0, ge=0, le=3, description="圈风")
+    is_self_drawn: bool = Field(default=True, description="是否自摸")
+    last_discard: Optional[int] = Field(default=None, description="他家刚打出的牌编码")
+
+
+class DiscardOptionResp(BaseModel):
+    tile: TileInfo
+    post_shanten: int
+    acceptance: int
+    danger_level: str
+    reason: str
+
+
+class ActionOptionResp(BaseModel):
+    action: str          # "chi", "pon", "kan", "tsumo"
+    tiles: List[TileInfo]
+    post_shanten: int
+    acceptance: int
+    fan: int = 0
+    fan_items: List[dict] = Field(default_factory=list)
+
+
+class DefenseResp(BaseModel):
+    dangerous_tiles: List[dict] = Field(default_factory=list)
+    safe_tiles: List[dict] = Field(default_factory=list)
+    summary: str = ""
+
+
+class GameAnalyzeResponse(BaseModel):
+    shanten: int
+    shanten_types: dict
+    acceptance: int
+    acceptance_tiles: List[TileInfo]
+
+    discard_options: List[DiscardOptionResp]
+    action_options: List[ActionOptionResp]
+    listen_analysis: Optional[dict] = None
+    defense: DefenseResp
+
+    hand_display: str
 
 
 # ── 辅助函数 ─────────────────────────────────────────
@@ -176,6 +234,111 @@ async def list_tiles():
 @app.get("/api/health")
 async def health():
     return {"status": "ok", "version": "1.1.0", "tests": "128 passing"}
+
+
+# ── Game Analyze 端点 ────────────────────────────────
+
+ACTION_NAMES = {"chi": "吃", "pon": "碰", "kan": "杠", "tsumo": "胡"}
+
+def _action_option_to_resp(opt: ActionOption) -> ActionOptionResp:
+    return ActionOptionResp(
+        action=opt.action,
+        tiles=[tile_to_info(t) for t in opt.tiles],
+        post_shanten=opt.post_shanten,
+        acceptance=opt.acceptance,
+        fan=opt.fan,
+        fan_items=[{"name": n, "fan": f} for n, f in opt.fan_items],
+    )
+
+def _discard_option_to_resp(opt: DiscardOption) -> DiscardOptionResp:
+    return DiscardOptionResp(
+        tile=tile_to_info(opt.tile),
+        post_shanten=opt.post_shanten,
+        acceptance=opt.acceptance,
+        danger_level=opt.danger_level,
+        reason=opt.reason,
+    )
+
+
+@app.post("/api/game-analyze", response_model=GameAnalyzeResponse)
+async def game_analyze(req: GameAnalyzeRequest):
+    """全面牌局分析
+
+    根据当前牌局状态，分析：
+      - 向听数 / 进张数
+      - 出牌建议（含防守评分）
+      - 吃碰杠决策
+      - 听牌分析（如果听牌）
+      - 防守信息（安全牌/危险牌）
+    """
+    try:
+        melds = req.melds or []
+        discards = {}
+        if req.discards:
+            discards = {int(k): v for k, v in req.discards.items()}
+        opp_melds = {}
+        if req.opponent_melds:
+            opp_melds = {int(k): v for k, v in req.opponent_melds.items()}
+
+        state = GameState(
+            hand=req.hand,
+            melds=melds,
+            discards=discards,
+            opponent_melds=opp_melds,
+            seat_wind=req.seat_wind,
+            round_wind=req.round_wind,
+            is_self_drawn=req.is_self_drawn,
+            last_discard=req.last_discard,
+        )
+
+        analysis = full_analysis(state)
+
+        return GameAnalyzeResponse(
+            shanten=analysis.shanten,
+            shanten_types=analysis.shanten_types,
+            acceptance=analysis.acceptance,
+            acceptance_tiles=[tile_to_info(t) for t in analysis.acceptance_tiles],
+            discard_options=[_discard_option_to_resp(o) for o in analysis.discard_options],
+            action_options=[_action_option_to_resp(o) for o in analysis.action_options],
+            listen_analysis=_serialize_listen(analysis.listen_analysis) if analysis.listen_analysis else None,
+            defense=DefenseResp(
+                dangerous_tiles=analysis.defense.dangerous_tiles if analysis.defense else [],
+                safe_tiles=analysis.defense.safe_tiles if analysis.defense else [],
+                summary=analysis.defense.summary if analysis.defense else "",
+            ),
+            hand_display=" ".join(tile_name(t) for t in req.hand),
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Game analyze error: {e}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def _serialize_listen(analysis: dict) -> dict:
+    """序列化听牌分析结果"""
+    if not analysis:
+        return {"is_tenpai": False, "options": [], "best": None, "total_fan": 0}
+
+    options = []
+    best = analysis.get("best")
+    for opt in analysis.get("options", []):
+        options.append({
+            "tile": tile_to_info(opt.tile),
+            "name": opt.name,
+            "remaining": opt.remaining,
+            "fan": opt.fan,
+            "fan_items": [{"name": n, "fan": f} for n, f in opt.fan_items],
+            "score": opt.score,
+        })
+
+    return {
+        "is_tenpai": analysis.get("is_tenpai", False),
+        "options": options,
+        "best": best.name if best else None,
+        "total_fan": analysis.get("total_fan", 0),
+    }
 
 
 # ── 静态文件 ─────────────────────────────────────────
