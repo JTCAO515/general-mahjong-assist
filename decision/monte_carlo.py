@@ -179,10 +179,16 @@ def evaluate_all_discards(hand: List[int],
     for code, cnt in remaining.items():
         pool.extend([code] * cnt)
 
-    unique_tiles = set(hand)
+    # 按牌型去重（同一张牌不同编码只算一次）
+    unique_by_type: Dict[Tuple[int, int], int] = {}
+    for tile in hand:
+        suit, rank = decode(tile)
+        key = (suit, rank)
+        if key not in unique_by_type:
+            unique_by_type[key] = tile  # 保留第一个编码
     results = []
 
-    for tile in unique_tiles:
+    for tile in unique_by_type.values():
         result = simulate_discard(hand, tile, melds, pool, simulations, max_draws)
         results.append(result)
 

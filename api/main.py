@@ -97,6 +97,7 @@ class GameAnalyzeRequest(BaseModel):
     round_wind: int = Field(default=0, ge=0, le=3, description="圈风")
     is_self_drawn: bool = Field(default=True, description="是否自摸")
     last_discard: Optional[int] = Field(default=None, description="他家刚打出的牌编码")
+    use_monte_carlo: bool = Field(default=False, description="启用蒙特卡洛模拟")
 
 
 class DiscardOptionResp(BaseModel):
@@ -134,6 +135,7 @@ class GameAnalyzeResponse(BaseModel):
     defense: DefenseResp
 
     hand_display: str
+    monte_carlo: Optional[List[dict]] = None
 
 
 # ── 辅助函数 ─────────────────────────────────────────
@@ -291,7 +293,7 @@ async def game_analyze(req: GameAnalyzeRequest):
             last_discard=req.last_discard,
         )
 
-        analysis = full_analysis(state)
+        analysis = full_analysis(state, use_monte_carlo=req.use_monte_carlo)
 
         return GameAnalyzeResponse(
             shanten=analysis.shanten,
@@ -307,6 +309,7 @@ async def game_analyze(req: GameAnalyzeRequest):
                 summary=analysis.defense.summary if analysis.defense else "",
             ),
             hand_display=" ".join(tile_name(t) for t in req.hand),
+            monte_carlo=analysis.monte_carlo,
         )
 
     except HTTPException:

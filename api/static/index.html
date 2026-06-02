@@ -310,6 +310,7 @@ body{
   <select id="selRound"><option value="0">东</option><option value="1">南</option><option value="2">西</option><option value="3">北</option></select>
   <span class="sel on" id="modeSel" onclick="toggleDraw()">自摸</span>
   <span class="sel" id="lastSel" onclick="toggleLast()">出牌 ✕</span>
+  <span class="sel" id="mcSel" onclick="toggleMC()" style="color:var(--teal)">MC</span>
   <span id="lastLabel" style="font-size:.5rem;color:var(--muted);display:none"></span>
 </div>
 
@@ -351,6 +352,7 @@ let lastDisc=null;
 let target=0;          // 0=手牌, 1=下家, 2=对家, 3=上家
 let isDraw=true;
 let showLast=false;
+let useMC=false;
 
 const PLAYER_NAMES=['','下家','对家','上家'];
 
@@ -537,22 +539,13 @@ function updateLastLabel(){
   else el.style.display='none';
 }
 
-// ════════════════ TILE CLICK IN STRIP FOR LAST DISCARD ════════════════
-// Overlay mini grid for last discard when showLast
-// We'll use a simple approach: a small floating grid
-
-// Actually, let me re-use the tile grid with filtering
-// When showLast is true, clicking a tile sets it as last discard
-// We need to detect this - override tapTile behavior when in "last discard" mode
-
-// Let me modify tapTile to handle last discard selection
-// Actually, it's cleaner to just add an onclick to tiles when showLast is active
-
-// I'll handle this by checking showLast in tile click handlers
-
-// ════════════════ MODIFIED tapTile ════════════════
-// I'll just patch the onClick in the tile rendering instead to avoid complexity
-// The grid rendering already has onclick="tapTile(...)". Let me add lastDisc detection.
+function toggleMC(){
+  useMC=!useMC;
+  const el=document.getElementById('mcSel');
+  el.textContent=useMC?'MC ⚡':'MC';
+  el.classList.toggle('on');
+  document.getElementById('resultArea').classList.remove('show');
+}
 
 // ════════════════ ANALYZE ════════════════
 async function analyze(){
@@ -579,6 +572,7 @@ async function analyze(){
       seat_wind:parseInt(document.getElementById('selWind').value),
       round_wind:parseInt(document.getElementById('selRound').value),
       is_self_drawn:isDraw,
+      use_monte_carlo:useMC,
     };
     if(lastDisc!==null) body.last_discard=lastDisc;
     for(const[s,l]of Object.entries(melds))if(l.length>0)body.opponent_melds[s]=l;
@@ -682,6 +676,21 @@ async function analyze(){
         for(const s of data.defense.safe_tiles.slice(0,8))h+=`<span class="def-chip s">${tn(s.tile)}</span>`;
         h+=`</div>`;
       }
+    }
+
+    // ── Monte Carlo ──
+    if(data.monte_carlo&&data.monte_carlo.length>0){
+      h+=`<div class=\"sec\" style=\"border-color:rgba(42,138,106,0.2)\"><div class=\"l\">🎲 蒙特卡洛 · 期望值 (EV)</div>
+        <table class=\"tbl\"><tr><th>牌</th><th>胜率</th><th>均番</th><th>EV</th></tr>`;
+      for(const o of data.monte_carlo){
+        const evColor=o.ev>1?'color:var(--gold-pale)':o.ev>0.5?'color:var(--green)':'color:var(--muted)';
+        h+=`<tr${o===data.monte_carlo[0]?' style=\"background:rgba(42,138,106,0.06)\"':''}>
+          <td class=\"tn\">${tn(o.tile)}</td>
+          <td>${(o.win_rate*100).toFixed(1)}%</td>
+          <td class=\"fn\">${o.avg_fan}番</td>
+          <td style=\"${evColor};font-weight:700\">${o.ev.toFixed(2)}</td></tr>`;
+      }
+      h+=`</table><div style=\"font-size:.45rem;color:var(--muted);margin-top:3px\">每手模拟 ${data.monte_carlo[0].simulations} 局 · ${data.monte_carlo[0].simulations*data.monte_carlo.length} 局总计</div></div>`;
     }
 
     rd.innerHTML=h;

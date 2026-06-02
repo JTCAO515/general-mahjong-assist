@@ -141,3 +141,41 @@ bash start-web.sh   # → http://localhost:8778
 | 测试 | **183** |
 | 新文件 | +3 |
 | 修改文件 | 4 |
+
+
+## 迭代 005: 蒙特卡洛 UI 集成 — EV 可視化
+
+**日期:** 2026-06-03
+**状态:** ✅ MC 结果在前端展示
+
+### 改动内容
+
+#### 后端 (api/main.py)
+- **GameAnalyzeRequest**: 新增 `use_monte_carlo: bool = False`
+- **GameAnalyzeResponse**: 新增 `monte_carlo: Optional[List[dict]]`
+- **端點**: 传入 `use_monte_carlo=req.use_monte_carlo` → 响应含 MC 数据
+
+#### 前端 (api/static/index.html)
+- **MC 开关按钮**: 设置栏新增 `[MC]` toggle, 切换后请求带 `use_monte_carlo: true`
+- **MC 结果展示**: 分析结果区尾部新增 「🎲 蒙特卡洛 · 期望值 (EV)」表格
+  - 牌名、胜率(%), 均番, EV — 按 EV 降序排列
+  - 首行高亮 + EV 配色 (高绿/中金/低灰)
+  - 底部显示模拟局数
+
+#### 优化 (decision/monte_carlo.py)
+- **牌型去重**: `evaluate_all_discards` 改为按 (suit, rank) 分组, 不再因编码不同重复模拟同一张牌
+  - 之前: 8条结果 (含4次1万+2次1条) → 现在: 3条唯一结果
+
+### 验证
+- 全量测试: 183/183 ✅
+- API 返回 `monte_carlo` 数据: ✅
+- 前端 MC 表格渲染: ✅
+- MC 计算结果: 1条 EV=0.95(胜率1.2%), 1万 EV=0, 2万 EV=0
+
+### 统计
+| 指标 | 值 |
+|------|-----|
+| 番种 | 76/81 |
+| 测试 | **183** |
+| 修改文件 | `main.py` + `index.html` + `monte_carlo.py` |
+| 新增端点参数 | `use_monte_carlo` |
