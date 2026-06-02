@@ -245,7 +245,11 @@ const SUITS=[
   {id:3,name:'风',tiles:[1,2,3,4]},
   {id:4,name:'箭',tiles:[1,2,3]},
 ];
-function T(s,r){return s*28+(r-1)*4}
+function T(s,r){
+  const base=[0,36,72,108,120];  // per-suit offset (matches Python encode)
+  const per=[4,4,4,3,4];         // copies per tile type
+  return base[s]+(r-1)*per[s];
+}
 const ALL=[];
 SUITS.forEach(s=>s.tiles.forEach(r=>ALL.push({code:T(s.id,r),suit:s.id,rank:r})));
 function tn(c){const t=ALL.find(x=>x.code===c);if(!t)return'?';const n=['一','二','三','四','五','六','七','八','九','东','南','西','北','中','发','白'];return t.suit<=2?n[t.rank-1]+['万','条','饼'][t.suit]:['东','南','西','北','中','发','白'][t.rank-1+(t.suit===3?0:4)]}
