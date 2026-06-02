@@ -3,500 +3,529 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<meta name="theme-color" content="#0a1a10">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<title>麻将决策 · 国标助手</title>
+<meta name="theme-color" content="#1a3a2a">
+<title>国标麻将 · 决策助手</title>
 <style>
 :root{
-  --gold:#d4af37;--gold-dim:#c9a84c;--gold-pale:#e8d48b;
-  --felt:#0d2818;--felt-dark:#0a1a10;--felt-light:#1a4a2e;
-  --text:#e8e0d4;--text-dim:#8b7d5e;--text-muted:#6b5d4e;
-  --orange:#e8860c;--red:#c62828;--blue:#1a73e8;--green:#2e8b57;
-  --radius:12px;--radius-sm:8px;
+  --bg:#1a2e22; --card:#0d1f15; --surface:#132418;
+  --gold:#e8c54a; --gold-dim:#c4a335; --gold-pale:#f0dd88;
+  --text:#ebe4d4; --dim:#9a8a6a; --muted:#6a5a4a;
+  --red:#d44545; --blue:#3a8fd4; --green:#4a9a5a; --orange:#d49a3a;
+  --radius:10px; --shadow:0 2px 12px rgba(0,0,0,0.4);
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html{font-size:16px}
+html{font-size:15px}
 body{
-  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Inter','Helvetica Neue',Arial,sans-serif;
-  background:var(--felt-dark);color:var(--text);
-  min-height:100dvh;overflow-x:hidden;
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+  background:var(--bg);color:var(--text);min-height:100dvh;
   -webkit-tap-highlight-color:transparent;
 }
 
+/* ── Header ── */
 .header{
-  background:linear-gradient(180deg,#0a1a10 0%,var(--felt) 100%);
-  border-bottom:1px solid rgba(212,175,55,0.12);
-  padding:10px 16px;text-align:center;position:sticky;top:0;z-index:100;
-  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  display:flex;align-items:center;gap:8px;padding:8px 14px;
+  background:linear-gradient(180deg,#0d1f15,var(--card));
+  border-bottom:1px solid rgba(232,197,74,0.08);position:sticky;top:0;z-index:100;
 }
-.header h1{
-  font-size:1rem;font-weight:800;color:var(--gold-pale);letter-spacing:3px;
-  text-shadow:0 2px 12px rgba(0,0,0,0.6);
-}
-
-.container{max-width:480px;margin:0 auto;padding:8px}
-.felt{
-  background:radial-gradient(ellipse at 50% 0%,#1a4a2e 0%,var(--felt) 100%);
-  border-radius:20px;border:1px solid rgba(212,175,55,0.1);
-  padding:12px;box-shadow:inset 0 0 60px rgba(0,0,0,0.4),0 4px 30px rgba(0,0,0,0.5);
-  position:relative;
-}
-.felt::before{content:'';position:absolute;inset:-3px;border-radius:22px;background:linear-gradient(135deg,rgba(212,175,55,0.08),transparent 60%,rgba(212,175,55,0.03));pointer-events:none}
-
-.section-label{
-  font-size:.6rem;font-weight:700;color:var(--text-dim);
-  letter-spacing:1px;margin:8px 0 4px;display:flex;align-items:center;gap:6px;
+.header h1{font-size:.9rem;font-weight:800;color:var(--gold-pale);letter-spacing:1px}
+.header .badge{
+  font-size:.5rem;padding:2px 6px;border-radius:8px;
+  background:rgba(232,197,74,0.1);color:var(--gold-dim);margin-left:auto;
 }
 
-/* ── Tile Grid ── */
-.tile-grid{display:grid;grid-template-columns:repeat(9,1fr);gap:3px}
-.tile-btn{
-  aspect-ratio:1;border-radius:5px;border:1px solid rgba(212,175,55,0.1);
-  background:rgba(0,0,0,0.15);color:var(--text-dim);
-  font-size:.72rem;font-weight:700;cursor:pointer;transition:all .08s;
+/* ── Container ── */
+.container{max-width:440px;margin:0 auto;padding:6px 8px}
+
+/* ═══════════════════ HAND STRIP ═══════════════════ */
+.hand-strip{
+  display:flex;align-items:center;gap:3px;padding:6px 8px;min-height:48px;
+  background:rgba(0,0,0,0.2);border-radius:8px;border:1px solid rgba(232,197,74,0.06);
+  margin-bottom:6px;overflow-x:auto;flex-wrap:wrap;
+}
+.hand-strip .tile-card{
   display:flex;align-items:center;justify-content:center;
-  user-select:none;-webkit-tap-highlight-color:transparent;
-  position:relative;min-height:34px;
+  width:30px;height:36px;border-radius:4px;font-size:.7rem;font-weight:700;
+  background:var(--surface);border:1px solid rgba(232,197,74,0.12);
+  color:var(--gold-pale);position:relative;flex-shrink:0;
+  cursor:pointer;transition:all .08s;
 }
-.tile-btn:active{transform:scale(.88)}
-.tile-btn.sel-hand{background:rgba(212,175,55,0.18);color:var(--gold-pale);border-color:rgba(212,175,55,0.35)}
-.tile-btn.sel-p1{background:rgba(230,57,70,0.12);color:#ff6b6b;border-color:rgba(230,57,70,0.2)}
-.tile-btn.sel-p2{background:rgba(33,150,243,0.12);color:#42a5f5;border-color:rgba(33,150,243,0.2)}
-.tile-btn.sel-p3{background:rgba(76,175,80,0.12);color:#66bb6a;border-color:rgba(76,175,80,0.2)}
-.tile-btn.sel-last{background:rgba(255,152,0,0.15);color:var(--orange);border-color:rgba(255,152,0,0.25)}
-.tile-count{
-  position:absolute;top:-5px;right:-5px;
-  background:#d4af37;color:#000;font-size:.55rem;font-weight:800;
-  width:16px;height:16px;border-radius:50%;
+.hand-strip .tile-card:active{transform:scale(.85)}
+.hand-strip .tile-card .x{
+  position:absolute;top:-5px;right:-5px;width:14px;height:14px;border-radius:50%;
+  background:var(--red);color:#fff;font-size:.5rem;font-weight:800;
+  display:flex;align-items:center;justify-content:center;
+}
+.hand-strip .tile-card.suit-wan{color:#e8c54a;border-color:rgba(232,197,74,0.2)}
+.hand-strip .tile-card.suit-tiao{color:#6abf7a;border-color:rgba(106,191,122,0.2)}
+.hand-strip .tile-card.suit-bing{color:#4a9fdf;border-color:rgba(74,159,223,0.2)}
+.hand-strip .tile-card.suit-feng{color:#e8a040;border-color:rgba(232,160,64,0.15)}
+.hand-strip .tile-card.suit-jian{color:#d45555;border-color:rgba(212,85,85,0.15)}
+.hand-strip .empty{font-size:.6rem;color:var(--muted);width:100%;text-align:center}
+
+/* ═══════════════════ TILE GRID ═══════════════════ */
+.suit-label{
+  font-size:.55rem;color:var(--muted);margin:3px 0 1px;letter-spacing:1px;
+}
+.tile-grid{display:grid;grid-template-columns:repeat(9,1fr);gap:3px;margin-bottom:3px}
+.tile{
+  aspect-ratio:1;border-radius:5px;border:1px solid rgba(232,197,74,0.06);
+  background:rgba(0,0,0,0.12);color:var(--dim);
+  font-size:.7rem;font-weight:700;cursor:pointer;transition:all .08s;
+  display:flex;align-items:center;justify-content:center;
+  user-select:none;position:relative;min-height:34px;
+}
+.tile:active{transform:scale(.85);background:rgba(232,197,74,0.08)}
+.tile.sel{
+  border-color:rgba(232,197,74,0.35);
+  box-shadow:0 0 8px rgba(232,197,74,0.1);
+}
+.tile.sel.wan{background:rgba(232,197,74,0.18);color:var(--gold-pale)}
+.tile.sel.tiao{background:rgba(106,191,122,0.18);color:#8adf9a}
+.tile.sel.bing{background:rgba(74,159,223,0.18);color:#7abfef}
+.tile.sel.feng{background:rgba(232,160,64,0.15);color:#f0b050}
+.tile.sel.jian{background:rgba(212,85,85,0.15);color:#e07070}
+.tile .cnt{
+  position:absolute;top:-4px;right:-4px;
+  width:15px;height:15px;border-radius:50%;
+  background:var(--gold);color:#000;font-size:.5rem;font-weight:800;
   display:flex;align-items:center;justify-content:center;
   box-shadow:0 1px 4px rgba(0,0,0,0.5);
 }
+.tile .cnt.c2{background:#f0dd88;font-size:.45rem}
+.tile .cnt.c3{background:#e8c54a;font-size:.45rem}
+.tile .cnt.c4{background:#d4a335;font-size:.4rem}
 
-/* ── Bar ── */
+/* ── Info Bar ── */
 .info-bar{
-  display:flex;align-items:center;gap:6px;padding:6px 8px;
-  background:rgba(0,0,0,0.12);border-radius:6px;margin:6px 0;
+  display:flex;align-items:center;gap:6px;padding:5px 8px;
+  background:rgba(0,0,0,0.1);border-radius:6px;margin:4px 0;
 }
-.info-bar .count{font-size:1rem;font-weight:800;color:var(--gold-pale);min-width:28px;text-align:center}
-.info-bar .label{font-size:.6rem;color:var(--text-dim);flex:1}
+.info-bar .num{font-size:1rem;font-weight:800;color:var(--gold-pale);min-width:24px;text-align:center}
+.info-bar .lbl{font-size:.6rem;color:var(--dim);flex:1}
 .info-bar .btn{
-  background:rgba(212,175,55,0.08);border:1px solid rgba(212,175,55,0.12);
-  color:var(--gold-pale);padding:4px 10px;border-radius:5px;font-size:.65rem;
-  font-weight:700;cursor:pointer;transition:all .08s;
+  padding:3px 10px;border-radius:5px;border:1px solid rgba(232,197,74,0.1);
+  background:rgba(232,197,74,0.06);color:var(--gold-dim);
+  font-size:.6rem;font-weight:700;cursor:pointer;
 }
-.info-bar .btn:active{background:rgba(212,175,55,0.15)}
+.info-bar .btn:active{background:rgba(232,197,74,0.12)}
 
-/* ── Game Settings Row ── */
-.settings-row{
+/* ═══════════════════ GAME TOOLBAR ═══════════════════ */
+.game-bar{
   display:flex;gap:4px;align-items:center;flex-wrap:wrap;
-  padding:4px 0;margin-bottom:4px;
+  padding:4px 0;margin:2px 0;
 }
-.settings-row select{
-  padding:4px 6px;border-radius:4px;border:1px solid rgba(212,175,55,0.1);
-  background:rgba(0,0,0,0.15);color:var(--text);font-size:.6rem;outline:none;
+.game-bar select{
+  padding:4px 6px;border-radius:4px;border:1px solid rgba(232,197,74,0.08);
+  background:rgba(0,0,0,0.12);color:var(--text);font-size:.58rem;outline:none;
 }
-.settings-row select:focus{border-color:rgba(212,175,55,0.25)}
+.game-bar .pill{
+  padding:3px 8px;border-radius:10px;font-size:.58rem;font-weight:600;
+  cursor:pointer;background:rgba(0,0,0,0.1);color:var(--muted);border:1px solid transparent;
+  user-select:none;
+}
+.game-bar .pill:active{transform:scale(.93)}
+.game-bar .pill.on{background:rgba(232,197,74,0.08);color:var(--gold-dim);border-color:rgba(232,197,74,0.15)}
+.game-bar .pill.active{background:rgba(212,69,69,0.1);color:#d44545;border-color:rgba(212,69,69,0.15)}
 
-/* ── Collapsible Section ── */
-.collapse-toggle{
-  display:flex;align-items:center;gap:4px;padding:6px 0;cursor:pointer;
-  border-top:1px solid rgba(212,175,55,0.06);
-  user-select:none;-webkit-tap-highlight-color:transparent;
+/* ═══════════════════ DISCARD SECTION ═══════════════════ */
+.section-toggle{
+  display:flex;align-items:center;gap:4px;padding:5px 0;cursor:pointer;
+  border-top:1px solid rgba(232,197,74,0.04);
 }
-.collapse-toggle:active{opacity:.7}
-.collapse-toggle .icon{font-size:.5rem;color:var(--text-muted);transition:transform .15s}
-.collapse-toggle .icon.open{transform:rotate(90deg)}
-.collapse-toggle .title{font-size:.65rem;font-weight:600;color:var(--text-dim);flex:1}
-.collapse-toggle .badge{font-size:.55rem;color:var(--text-muted);margin-left:auto}
-.collapse-body{overflow:hidden;max-height:0;transition:max-height .2s ease}
-.collapse-body.open{max-height:600px}
+.section-toggle .arr{font-size:.5rem;color:var(--muted);transition:transform .15s}
+.section-toggle .arr.on{transform:rotate(90deg)}
+.section-toggle .t{font-size:.6rem;font-weight:600;color:var(--dim);flex:1}
+.section-toggle .hint{font-size:.5rem;color:var(--muted)}
+.section-body{overflow:hidden;max-height:0;transition:max-height .2s}
+.section-body.on{max-height:800px}
 
-/* ── Player Pills ── */
-.player-pills{display:flex;gap:4px;margin:4px 0}
-.player-pill{
-  padding:3px 10px;border-radius:12px;font-size:.6rem;font-weight:600;
-  cursor:pointer;transition:all .08s;user-select:none;
-  background:rgba(0,0,0,0.1);color:var(--text-muted);
+.player-strip{display:flex;gap:4px;margin:3px 0;flex-wrap:wrap}
+.player-chip{
+  padding:2px 10px;border-radius:12px;font-size:.6rem;font-weight:600;
+  cursor:pointer;background:rgba(0,0,0,0.08);color:var(--muted);
+  border:1px solid transparent;user-select:none;
 }
-.player-pill:active{transform:scale(.93)}
-.player-pill.act-p1{background:rgba(230,57,70,0.12);color:#ff6b6b}
-.player-pill.act-p2{background:rgba(33,150,243,0.12);color:#42a5f5}
-.player-pill.act-p3{background:rgba(76,175,80,0.12);color:#66bb6a}
+.player-chip.s1{color:#d44545}.player-chip.s1.on{background:rgba(212,69,69,0.08);border-color:rgba(212,69,69,0.15)}
+.player-chip.s2{color:#3a8fd4}.player-chip.s2.on{background:rgba(58,143,212,0.08);border-color:rgba(58,143,212,0.15)}
+.player-chip.s3{color:#4a9a5a}.player-chip.s3.on{background:rgba(74,154,90,0.08);border-color:rgba(74,154,90,0.15)}
 
-/* ── Meld List ── */
-.meld-input-row{display:flex;gap:4px;align-items:center;margin-bottom:4px}
-.meld-input-row input{
-  flex:1;padding:4px 8px;border-radius:4px;border:1px solid rgba(212,175,55,0.1);
-  background:rgba(0,0,0,0.12);color:var(--text);font-size:.6rem;outline:none;
+/* ═══════════════════ ANALYZE BUTTON ═══════════════════ */
+.analyze-area{
+  display:flex;gap:6px;margin:6px 0;
 }
-.meld-input-row input:focus{border-color:rgba(212,175,55,0.25)}
-.meld-input-row .btn{
-  padding:4px 8px;border-radius:4px;border:1px solid rgba(212,175,55,0.12);
-  background:rgba(212,175,55,0.08);color:var(--gold-pale);
-  font-size:.6rem;font-weight:600;cursor:pointer;
-}
-.meld-chip{
-  display:inline-flex;align-items:center;gap:4px;
-  padding:2px 6px 2px 10px;margin:2px;border-radius:12px;
-  background:rgba(212,175,55,0.06);border:1px solid rgba(212,175,55,0.08);
-  font-size:.6rem;cursor:pointer;
-}
-.meld-chip .rm{color:var(--red);margin-left:2px;font-size:.55rem}
-
-/* ── Last Discard Grid ── */
-.mini-grid{display:grid;grid-template-columns:repeat(9,1fr);gap:2px}
-.mini-grid .tile-btn{min-height:28px;font-size:.65rem;aspect-ratio:unset;padding:2px 0}
-
-/* ── Analyze Button ── */
 .analyze-btn{
-  width:100%;padding:11px;border-radius:10px;border:none;margin-top:6px;
-  background:linear-gradient(135deg,rgba(212,175,55,0.2),rgba(212,175,55,0.1));
-  color:var(--gold-pale);font-size:.95rem;font-weight:800;
-  cursor:pointer;transition:all .08s;letter-spacing:2px;
+  flex:1;padding:10px;border-radius:8px;border:none;
+  background:linear-gradient(135deg,rgba(232,197,74,0.15),rgba(232,197,74,0.08));
+  color:var(--gold);font-size:.9rem;font-weight:800;
+  cursor:pointer;letter-spacing:2px;
 }
-.analyze-btn:active{transform:scale(.97);background:linear-gradient(135deg,rgba(212,175,55,0.25),rgba(212,175,55,0.15))}
+.analyze-btn:active{transform:scale(.97);background:linear-gradient(135deg,rgba(232,197,74,0.2),rgba(232,197,74,0.12))}
 
-/* ── Result Area ── */
-.result-area{margin-top:8px;display:none}
+/* ═══════════════════ RESULTS ═══════════════════ */
+.result-area{display:none;margin-top:6px}
 .result-area.show{display:block}
-.result-card{
-  background:rgba(0,0,0,0.18);border-radius:8px;
-  padding:8px 10px;margin-bottom:5px;border:1px solid rgba(212,175,55,0.06);
+
+/* ── Top Action Card ── */
+.action-hero{
+  padding:10px 12px;border-radius:10px;margin-bottom:6px;
+  border:1px solid rgba(232,197,74,0.12);
+  display:flex;align-items:center;gap:10px;
 }
-.result-label{
-  font-size:.55rem;font-weight:700;color:var(--text-dim);
-  letter-spacing:1px;margin-bottom:2px;
+.action-hero.primary{background:linear-gradient(135deg,rgba(232,197,74,0.08),rgba(232,197,74,0.03));border-color:rgba(232,197,74,0.2)}
+.action-hero.discard{background:linear-gradient(135deg,rgba(58,143,212,0.08),rgba(58,143,212,0.03));border-color:rgba(58,143,212,0.15)}
+.action-hero.action{background:linear-gradient(135deg,rgba(212,69,69,0.08),rgba(212,69,69,0.03));border-color:rgba(212,69,69,0.15)}
+.action-hero .icon-box{
+  width:38px;height:48px;border-radius:6px;display:flex;align-items:center;justify-content:center;
+  font-size:1rem;font-weight:800;flex-shrink:0;
 }
-.result-value{font-size:.9rem;font-weight:700}
-.gold{color:var(--gold-pale)}.green{color:var(--green)}.orange{color:var(--orange)}.red{color:var(--red)}
+.action-hero.primary .icon-box{background:rgba(232,197,74,0.12);color:var(--gold)}
+.action-hero.discard .icon-box{background:rgba(58,143,212,0.12);color:var(--blue)}
+.action-hero.action .icon-box{background:rgba(212,69,69,0.12);color:var(--red)}
+.action-hero .main{
+  flex:1;font-size:.85rem;font-weight:800;line-height:1.3;
+}
+.action-hero .main .sub{font-size:.58rem;font-weight:400;color:var(--dim);margin-top:1px}
+.action-hero .side{text-align:right;font-size:.7rem;font-weight:700;color:var(--green);flex-shrink:0}
+.action-hero .side .sub{font-size:.55rem;font-weight:400;color:var(--muted)}
 
 /* ── Listen Table ── */
-.listen-table{width:100%;border-collapse:collapse}
-.listen-table th{
-  font-size:.55rem;color:var(--text-dim);letter-spacing:1px;
-  padding:3px 5px;text-align:left;border-bottom:1px solid rgba(212,175,55,0.08);
-}
-.listen-table td{font-size:.7rem;padding:3px 5px;border-bottom:1px solid rgba(212,175,55,0.04)}
-.listen-table .tile-name{font-weight:700;color:var(--gold-pale)}
-.listen-table .fan{color:var(--orange);font-weight:700}
+.listen-card{background:rgba(0,0,0,0.08);border-radius:8px;padding:6px 8px;margin-bottom:5px}
+.listen-card .lbl{font-size:.55rem;font-weight:700;color:var(--dim);letter-spacing:1px;margin-bottom:2px}
+.listen-table{width:100%;border-collapse:collapse;font-size:.7rem}
+.listen-table th{font-size:.52rem;color:var(--muted);padding:2px 4px;text-align:left;border-bottom:1px solid rgba(232,197,74,0.05);letter-spacing:1px}
+.listen-table td{padding:3px 4px;border-bottom:1px solid rgba(232,197,74,0.03)}
+.listen-table .tn{font-weight:700;color:var(--gold-pale)}
+.listen-table .sc{color:var(--green);font-weight:700}
 
-/* ── Discard Recommendations ── */
-.disc-row{
-  display:flex;align-items:center;gap:6px;padding:4px 6px;
-  border-radius:4px;margin:2px 0;
-}
-.disc-row .tile-box{
-  width:26px;height:30px;border-radius:3px;
-  background:rgba(212,175,55,0.1);border:1px solid rgba(212,175,55,0.12);
-  text-align:center;line-height:30px;font-size:.65rem;font-weight:800;
-  color:var(--gold-pale);flex-shrink:0;
-}
-.disc-row .info{flex:1;font-size:.75rem;font-weight:600}
-.disc-row .info .sub{font-size:.55rem;font-weight:400;color:var(--text-dim)}
-.disc-row .stats{text-align:right;font-size:.7rem;font-weight:700;color:var(--green)}
-.disc-row .stats .sub{font-size:.55rem;font-weight:400;color:var(--text-muted)}
-.danger-badge{
-  display:inline-block;padding:1px 5px;border-radius:3px;
-  font-size:.5rem;font-weight:700;margin-left:4px;
-}
-.danger-badge.low{background:rgba(76,175,80,0.15);color:#4caf50}
-.danger-badge.mid{background:rgba(255,152,0,0.15);color:#ffa726}
-.danger-badge.high{background:rgba(198,40,40,0.15);color:#ef5350}
+/* ── Fan Items ── */
+.fan-card{background:rgba(0,0,0,0.06);border-radius:6px;padding:5px 8px;margin-bottom:4px}
+.fan-item{font-size:.6rem;padding:1px 0;display:flex;justify-content:space-between;color:var(--dim)}
+.fan-item .fv{color:var(--orange)}
 
-/* ── Action Cards ── */
-.action-card{
-  display:flex;align-items:center;gap:6px;padding:5px 8px;margin:3px 0;
-  border-radius:6px;background:rgba(0,0,0,0.1);border:1px solid rgba(212,175,55,0.05);
-}
-.action-badge{
-  padding:2px 7px;border-radius:4px;font-size:.6rem;font-weight:800;flex-shrink:0;
-}
-.action-badge.chi{background:rgba(33,150,243,0.12);color:#42a5f5}
-.action-badge.pon{background:rgba(255,152,0,0.12);color:#ffa726}
-.action-badge.kan{background:rgba(233,30,99,0.12);color:#ec407a}
-.action-badge.tsumo{background:rgba(212,175,55,0.15);color:var(--gold)}
-.action-result{font-size:.75rem;font-weight:700}
-.action-result .sub{font-size:.6rem;font-weight:400;color:var(--text-dim)}
-
-/* ── Defense ── */
-.defense-tile{
-  display:inline-block;padding:1px 5px;margin:1px;border-radius:3px;
-  font-size:.6rem;font-weight:600;
-}
-.defense-tile.danger{background:rgba(198,40,40,0.1);color:#ef5350}
-.defense-tile.safe{background:rgba(76,175,80,0.1);color:#4caf50;opacity:.7}
-
-/* ── Acceptance ── */
-.accept-chips{display:flex;gap:3px;flex-wrap:wrap;margin-top:3px}
-.accept-chip{
-  padding:2px 7px;border-radius:10px;
-  background:rgba(212,175,55,0.06);border:1px solid rgba(212,175,55,0.08);
-  font-size:.65rem;color:var(--text);
-}
+/* ── Defense Chips ── */
+.def-section{background:rgba(0,0,0,0.06);border-radius:6px;padding:5px 8px;margin-bottom:4px}
+.def-section .lbl{font-size:.52rem;font-weight:600;color:var(--muted);margin-bottom:2px}
+.def-chip{display:inline-block;padding:1px 5px;margin:1px;border-radius:3px;font-size:.55rem;font-weight:600}
+.def-chip.danger{background:rgba(212,69,69,0.08);color:#e06060}
+.def-chip.safe{background:rgba(74,154,90,0.08);color:#6aba7a;opacity:.7}
 
 /* ── Loading / Error ── */
-.loading{text-align:center;padding:16px;color:var(--text-muted);font-size:.75rem}
-.error-bar{
-  background:rgba(198,40,40,0.1);border:1px solid rgba(198,40,40,0.15);
-  color:#ef5350;padding:6px 10px;border-radius:6px;font-size:.7rem;margin-top:6px;
+.loading{text-align:center;padding:14px;color:var(--muted);font-size:.7rem}
+.error{
+  background:rgba(212,69,69,0.08);border:1px solid rgba(212,69,69,0.12);
+  color:#e06060;padding:6px 10px;border-radius:6px;font-size:.65rem;margin-top:4px;
 }
-.footer-note{text-align:center;font-size:.5rem;color:var(--text-muted);margin-top:6px}
+
+/* ── Footer ── */
+.ft{text-align:center;font-size:.45rem;color:var(--muted);padding:4px 0;opacity:.6}
+
+/* ── Meld/Mini forms ── */
+.mini-form{display:flex;gap:4px;align-items:center;margin:4px 0}
+.mini-form input{
+  flex:1;padding:3px 6px;border-radius:4px;border:1px solid rgba(232,197,74,0.06);
+  background:rgba(0,0,0,0.1);color:var(--text);font-size:.55rem;outline:none;
+}
+.mini-form .btn{
+  padding:3px 8px;border-radius:4px;border:1px solid rgba(232,197,74,0.1);
+  background:rgba(232,197,74,0.06);color:var(--gold-dim);
+  font-size:.55rem;font-weight:600;cursor:pointer;
+}
+.meld-bar{display:flex;gap:3px;flex-wrap:wrap;margin:3px 0}
+.meld-chip{
+  display:inline-flex;align-items:center;gap:3px;
+  padding:1px 5px 1px 8px;border-radius:10px;
+  background:rgba(232,197,74,0.04);border:1px solid rgba(232,197,74,0.06);
+  font-size:.5rem;cursor:pointer;color:var(--dim);
+}
+.meld-chip .rm{color:var(--red);font-size:.45rem}
 </style>
 </head>
 <body>
 
-<div class="header"><h1>🀄 国标麻将 · 决策助手</h1></div>
+<div class="header">
+  <h1>🀄 国标麻将</h1>
+  <span class="badge">通行规则 · 8番起胡</span>
+</div>
 
 <div class="container">
-<div class="felt">
 
-<!-- ═══ HAND TILES ═══ -->
-<div class="info-bar">
-  <span class="count" id="handCount">0</span>
-  <span class="label">张手牌</span>
-  <button class="btn" onclick="clearHand()">清空</button>
+<!-- ═══ HAND STRIP ═══ -->
+<div class="hand-strip" id="handStrip">
+  <div class="empty">点牌选入手中</div>
 </div>
-<div id="handGrid"></div>
 
-<!-- ═══ GAME SETTINGS ═══ -->
-<div class="settings-row">
+<!-- ═══ INFO BAR ═══ -->
+<div class="info-bar">
+  <span class="num" id="cntNum">0</span>
+  <span class="lbl">张手牌 · 长按牌选多张</span>
+  <button class="btn" onclick="clrHand()">清除</button>
+</div>
+
+<!-- ═══ TILE GRID ═══ -->
+<div id="tileGrid"></div>
+
+<!-- ═══ GAME TOOLBAR ═══ -->
+<div class="game-bar">
+  <span style="font-size:.55rem;color:var(--muted)">座</span>
   <select id="selWind"><option value="0">东</option><option value="1">南</option><option value="2">西</option><option value="3">北</option></select>
   <select id="selRound"><option value="0">东圈</option><option value="1">南圈</option><option value="2">西圈</option><option value="3">北圈</option></select>
-  <select id="selDraw">
-    <option value="true">自家摸牌</option>
-    <option value="false">他家出牌</option>
-  </select>
+  <span class="pill on" id="modePill" onclick="toggleMode()">当前摸牌</span>
   <span style="flex:1"></span>
-</div>
-
-<!-- ═══ DISCARD INPUT ═══ -->
-<div class="collapse-toggle" onclick="toggleCollapse('discardSec')">
-  <span class="icon open" id="discardIcon">▶</span>
-  <span class="title">三家舍牌</span>
-  <span class="badge" id="discardBadge">0张</span>
-</div>
-<div class="collapse-body open" id="discardSec">
-  <div class="player-pills" id="playerPills"></div>
-  <div id="discardGrid"></div>
-  <div style="font-size:.55rem;color:var(--text-muted);text-align:right;padding:2px 0">点击牌标记/取消舍牌</div>
-</div>
-
-<!-- ═══ OPPONENT MELDS ═══ -->
-<div class="collapse-toggle" onclick="toggleCollapse('meldSec')">
-  <span class="icon" id="meldIcon">▶</span>
-  <span class="title">他家副露（吃碰杠）</span>
-  <span class="badge" id="meldBadge">0组</span>
-</div>
-<div class="collapse-body" id="meldSec">
-  <div class="meld-input-row">
-    <select id="meldSeat" style="padding:4px 6px;border-radius:4px;border:1px solid rgba(212,175,55,0.1);background:rgba(0,0,0,0.15);color:var(--text);font-size:.6rem;outline:none">
-      <option value="1">下家</option><option value="2">对家</option><option value="3">上家</option>
-    </select>
-    <input id="meldInput" placeholder="牌编码，逗号分隔 如 0,4,8 (三段1万)">
-    <div class="btn" onclick="addMeld()">记录</div>
-  </div>
-  <div id="meldList" style="font-size:.6rem;color:var(--text-dim)">暂无</div>
+  <span class="pill" id="lastPill" onclick="document.getElementById('lastSection').classList.toggle('on')">出牌人 ✕</span>
 </div>
 
 <!-- ═══ LAST DISCARD ═══ -->
-<div class="collapse-toggle" onclick="toggleCollapse('lastSec')">
-  <span class="icon" id="lastIcon">▶</span>
-  <span class="title">他家打牌（吃碰杠判断）</span>
-  <span class="badge" id="lastBadge">未选</span>
+<div class="section-body" id="lastSection" style="margin-bottom:3px">
+  <div class="mini-grid" id="lastGrid" style="display:grid;grid-template-columns:repeat(9,1fr);gap:2px"></div>
+  <div style="font-size:.5rem;color:var(--muted);margin-top:1px">点选对方刚打的牌 → 自动分析吃碰杠</div>
 </div>
-<div class="collapse-body" id="lastSec">
-  <div class="mini-grid" id="lastDiscardGrid"></div>
-  <div style="font-size:.55rem;color:var(--text-muted);padding:2px 0">点击选择对方刚打出的牌</div>
+
+<!-- ═══ DISCARD INPUT ═══ -->
+<div class="section-toggle" onclick="tog('discardSec')">
+  <span class="arr" id="discardArr">▶</span>
+  <span class="t">三家舍牌</span>
+  <span class="hint" id="discardHint">0张</span>
+</div>
+<div class="section-body" id="discardSec">
+  <div class="player-strip" id="playerStrip"></div>
+  <div id="discardGrid"></div>
+</div>
+
+<!-- ═══ OPPONENT MELDS ═══ -->
+<div class="section-toggle" onclick="tog('meldSec')">
+  <span class="arr" id="meldArr">▶</span>
+  <span class="t">他家副露</span>
+  <span class="hint" id="meldHint">0组</span>
+</div>
+<div class="section-body" id="meldSec">
+  <div class="mini-form">
+    <select id="meldSeat" style="padding:3px 6px;border-radius:4px;border:1px solid rgba(232,197,74,0.06);background:rgba(0,0,0,0.1);color:var(--text);font-size:.55rem;outline:none">
+      <option value="1">下家</option><option value="2">对家</option><option value="3">上家</option>
+    </select>
+    <input id="meldInp" placeholder="编码，如 0,4,8">
+    <div class="btn" onclick="addMeld()">+</div>
+  </div>
+  <div class="meld-bar" id="meldList"></div>
 </div>
 
 <!-- ═══ ANALYZE ═══ -->
-<button class="analyze-btn" onclick="analyze()">🎯 全面分析</button>
+<div class="analyze-area">
+  <button class="analyze-btn" onclick="analyze()">🎯 分析</button>
+</div>
 
 <!-- ═══ RESULTS ═══ -->
 <div class="result-area" id="resultArea">
   <div id="resultContent"></div>
 </div>
 
-<!-- ═══ FOOTER ═══ -->
-<div class="footer-note">通行规则 · 8番起胡 · 153项测试通过</div>
-
-</div>
+<div class="ft">General Mahjong Assist · v1.1</div>
 </div>
 
 <script>
-// ── Tile Data ──
-const suits = [
-  { id:0, name:'万', tiles:[1,2,3,4,5,6,7,8,9] },
-  { id:1, name:'条', tiles:[1,2,3,4,5,6,7,8,9] },
-  { id:2, name:'饼', tiles:[1,2,3,4,5,6,7,8,9] },
-  { id:3, name:'风', tiles:[1,2,3,4] },
-  { id:4, name:'箭', tiles:[1,2,3] },
+// ════════════════ TILE DATA ════════════════
+const SUITS=[
+  {id:0,name:'万',color:'wan',tiles:[1,2,3,4,5,6,7,8,9]},
+  {id:1,name:'条',color:'tiao',tiles:[1,2,3,4,5,6,7,8,9]},
+  {id:2,name:'饼',color:'bing',tiles:[1,2,3,4,5,6,7,8,9]},
+  {id:3,name:'风',color:'feng',tiles:[1,2,3,4]},
+  {id:4,name:'箭',color:'jian',tiles:[1,2,3]},
 ];
+function T(s,r){return s*28+(r-1)*4}
 
-function tcode(s,r){ return s*28+(r-1)*4 }
-
-const ALL = [];
-suits.forEach(s => s.tiles.forEach(r => ALL.push({code:tcode(s.id,r),suit:s.id,rank:r})));
-
-function tname(code){
-  const t=ALL.find(x=>x.code===code); if(!t) return '?';
+const ALL=[],NAMES={}; SUITS.forEach(s=>s.tiles.forEach(r=>{
+  const c=T(s.id,r); ALL.push({code:c,suit:s.id,rank:r,color:s.color});
   const n=['一','二','三','四','五','六','七','八','九','东','南','西','北','中','发','白'];
-  return t.suit<=2?n[t.rank-1]+['','万','条','饼'][t.suit]:['东','南','西','北','中','发','白'][t.rank-1+(t.suit===3?0:4)];
+  NAMES[c]=s.id<=2?(n[r-1]+s.name):['东','南','西','北','中','发','白'][r-1+(s.id===3?0:4)];
+}));
+function tn(c){return NAMES[c]||'?'}
+function ts(c){
+  const t=ALL.find(x=>x.code===c); if(!t)return'?';
+  if(t.suit<=2)return['','万','条','饼'][t.suit]+t.rank;
+  return '东南西北中发白'[t.rank-1+(t.suit===3?0:4)];
 }
-function tshort(code){
-  const t=ALL.find(x=>x.code===code); if(!t) return '?';
-  if(t.suit<=2) return (['','万','条','饼'][t.suit])+t.rank;
-  return ['东南西北中发白'][0][t.rank-1+(t.suit===3?0:4)];
-}
+function tcolor(c){const t=ALL.find(x=>x.code===c);return t?t.color:'wan'}
 
-// ── State ──
-let hand={};          // {code: count}
-let discards={1:[],2:[],3:[]};
-let oppMelds={1:[],2:[],3:[]};
-let lastDisc=null;
-let curPlayer=1;
-let activeCard=null;  // currently expanded collapse section
+// ════════════════ STATE ════════════════
+let hand={}; let discards={1:[],2:[],3:[]}; let melds={1:[],2:[],3:[]};
+let lastDisc=null; let curP=1;
+let isDraw=true; // 自家摸牌
 
-// ── Render Hand Grid ──
+// ════════════════ RENDER HAND ════════════════
 function renderHand(){
-  let h='';
-  for(const s of suits){
-    h+=`<div style="font-size:.55rem;color:var(--text-muted);margin:4px 0 1px">${s.name}</div><div class="tile-grid">`;
-    for(const r of s.tiles){
-      const code=tcode(s.id,r), cnt=hand[code]||0;
-      h+=`<div class="tile-btn${cnt>0?' sel-hand':''}" onclick="clickHand(${code})">${tshort(code)}${cnt>1?`<span class="tile-count">${cnt}</span>`:''}</div>`;
-    }
-    h+=`</div>`;
+  // strip
+  const codes=Object.keys(hand).map(Number).sort((a,b)=>a-b);
+  let hs='';
+  if(codes.length===0) hs='<div class="empty">点牌选入手中</div>';
+  else for(const c of codes){
+    const n=hand[c]||0;
+    const col=tcolor(c);
+    for(let i=0;i<n;i++)
+      hs+=`<div class="tile-card suit-${col}" onclick="rmOne(${c})">${ts(c)}<span class="x">✕</span></div>`;
   }
-  document.getElementById('handGrid').innerHTML=h;
-  document.getElementById('handCount').textContent=totalHand();
-}
-function totalHand(){return Object.values(hand).reduce((a,b)=>a+b,0)}
-function clickHand(code){
-  if((hand[code]||0)>=4) return;
-  hand[code]=(hand[code]||0)+1;
-  renderHand();
+  document.getElementById('handStrip').innerHTML=hs;
+
+  // count
+  const total=Object.values(hand).reduce((a,b)=>a+b,0);
+  document.getElementById('cntNum').textContent=total;
+
+  // grid
+  let g='';
+  for(const s of SUITS){
+    g+=`<div class="suit-label">${s.name}</div><div class="tile-grid">`;
+    for(const r of s.tiles){
+      const c=T(s.id,r), n=hand[c]||0;
+      const sel=n>0?' sel':'';
+      const cc=s.color;
+      const badge=n>0?`<span class="cnt c${Math.min(n,4)}">${n}</span>`:'';
+      g+=`<div class="tile${sel} ${cc}" onclick="tapHand(${c})" oncontextmenu="rHand(${c});return false">${ts(c)}${badge}</div>`;
+    }
+    g+=`</div>`;
+  }
+  document.getElementById('tileGrid').innerHTML=g;
+
+  // re-bind long press
+  document.querySelectorAll('.tile').forEach(el=>{
+    let timer; let code;
+    el.addEventListener('pointerdown',function(e){
+      const m=this.getAttribute('onclick');
+      if(m) code=parseInt(m.match(/\d+/)[0]);
+      timer=setTimeout(()=>{rHand(code);timer=null},400);
+    });
+    el.addEventListener('pointerup',()=>{if(timer){clearTimeout(timer);timer=null}});
+    el.addEventListener('pointerleave',()=>{if(timer){clearTimeout(timer);timer=null}});
+  });
+
   document.getElementById('resultArea').classList.remove('show');
 }
-function clearHand(){hand={};renderHand();document.getElementById('resultArea').classList.remove('show')}
 
-// ── Render Players ──
+function tapHand(c){
+  if((hand[c]||0)>=4)return;
+  hand[c]=(hand[c]||0)+1; renderHand();
+}
+function rHand(c){
+  if(hand[c]){delete hand[c];renderHand()}
+}
+function rmOne(c){
+  if(hand[c]){hand[c]--;if(hand[c]<=0)delete hand[c];renderHand()}
+}
+function clrHand(){hand={};renderHand()}
+
+// ════════════════ RENDER DISCARDS ════════════════
 function renderPlayers(){
-  const names=['','下家','对家','上家'];
+  const n=['','下家','对家','上家'];
   let h='';
   for(let i=1;i<=3;i++){
-    const count=discards[i].length;
-    h+=`<div class="player-pill${curPlayer===i?' act-p'+i:''}" onclick="switchP(${i})">${names[i]} (${count})</div>`;
+    const cnt=discards[i].length;
+    h+=`<div class="player-chip s${i}${curP===i?' on':''}" onclick="swP(${i})">${n[i]} (${cnt})</div>`;
   }
-  document.getElementById('playerPills').innerHTML=h;
+  document.getElementById('playerStrip').innerHTML=h;
 }
-function switchP(p){curPlayer=p;renderPlayers();renderDiscards()}
+function swP(p){curP=p;renderPlayers();renderDisc();updateHints()}
 
-// ── Render Discard Grid ──
-function renderDiscards(){
+function renderDisc(){
   let h='';
-  for(const s of suits){
-    h+=`<div style="font-size:.52rem;color:var(--text-muted);margin:3px 0 1px">${s.name}</div><div class="tile-grid">`;
+  for(const s of SUITS){
+    h+=`<div style="font-size:.5rem;color:var(--muted);margin:2px 0">${s.name}</div><div class="tile-grid">`;
     for(const r of s.tiles){
-      const code=tcode(s.id,r);
-      const cnt=(discards[curPlayer]||[]).filter(c=>c===code).length;
-      h+=`<div class="tile-btn${cnt>0?' sel-p'+curPlayer:''}" onclick="clickDisc(${code})">${tshort(code)}${cnt>1?`<span class="tile-count">${cnt}</span>`:''}</div>`;
+      const c=T(s.id,r), n=(discards[curP]||[]).filter(x=>x===c).length;
+      const sel=n>0?' sel':'';
+      h+=`<div class="tile${sel}" onclick="tapDisc(${c})" style="min-height:28px;font-size:.65rem">${ts(c)}${n>1?`<span class="cnt c${Math.min(n,4)}">${n}</span>`:''}</div>`;
     }
     h+=`</div>`;
   }
   document.getElementById('discardGrid').innerHTML=h;
-  updateBadges();
 }
-function clickDisc(code){
-  const idx=discards[curPlayer].indexOf(code);
-  if(idx>=0) discards[curPlayer].splice(idx,1);
-  else discards[curPlayer].push(code);
-  renderDiscards();renderPlayers();
+function tapDisc(c){
+  const idx=discards[curP].indexOf(c);
+  if(idx>=0) discards[curP].splice(idx,1); else discards[curP].push(c);
+  renderDisc();renderPlayers();updateHints();
   document.getElementById('resultArea').classList.remove('show');
 }
 
-// ── Last Discard Grid ──
-function renderLastDiscard(){
+// ════════════════ LAST DISCARD ════════════════
+function renderLast(){
   let h='';
-  for(const s of suits){
-    h+=`<div style="font-size:.5rem;color:var(--text-muted);margin:2px 0">${s.name}</div><div class="mini-grid">`;
+  for(const s of SUITS){
+    h+=`<div style="font-size:.5rem;color:var(--muted);margin:1px 0">${s.name}</div><div class="mini-grid">`;
     for(const r of s.tiles){
-      const code=tcode(s.id,r);
-      h+=`<div class="tile-btn${lastDisc===code?' sel-last':''}" onclick="clickLast(${code})">${tshort(code)}</div>`;
+      const c=T(s.id,r);
+      h+=`<div class="tile ${lastDisc===c?'sel':''}" onclick="tapLast(${c})" style="min-height:26px;font-size:.6rem">${ts(c)}</div>`;
     }
     h+=`</div>`;
   }
-  document.getElementById('lastDiscardGrid').innerHTML=h;
+  document.getElementById('lastGrid').innerHTML=h;
 }
-function clickLast(code){
-  lastDisc=(lastDisc===code?null:code);
-  renderLastDiscard();
-  document.getElementById('lastBadge').textContent=lastDisc===null?'未选':tshort(lastDisc);
+function tapLast(c){
+  lastDisc=(lastDisc===c?null:c);
+  renderLast();
+  const p=document.getElementById('lastPill');
+  if(lastDisc===null){p.textContent='出牌人 ✕';p.classList.remove('on')}
+  else{p.textContent=ts(lastDisc)+' 出';p.classList.add('on')}
   document.getElementById('resultArea').classList.remove('show');
 }
 
-// ── Opponent Melds ──
+// ════════════════ MELDS ════════════════
 function addMeld(){
-  const seat=parseInt(document.getElementById('meldSeat').value);
-  const raw=document.getElementById('meldInput').value.trim();
+  const s=parseInt(document.getElementById('meldSeat').value);
+  const raw=document.getElementById('meldInp').value.trim();
   if(!raw)return;
-  const codes=raw.split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n));
+  const codes=raw.split(',').map(x=>parseInt(x.trim())).filter(n=>!isNaN(n));
   if(codes.length<3)return;
-  if(!oppMelds[seat])oppMelds[seat]=[];
-  oppMelds[seat].push(codes);
-  document.getElementById('meldInput').value='';
-  renderMeldList();
+  if(!melds[s])melds[s]=[]; melds[s].push(codes);
+  document.getElementById('meldInp').value=''; renderMeldList();
 }
-function rmMeld(seat,idx){
-  if(oppMelds[seat])oppMelds[seat].splice(idx,1);
-  renderMeldList();
-}
+function rmMeld(s,i){if(melds[s]){melds[s].splice(i,1);renderMeldList()}}
 function renderMeldList(){
-  let total=0,h='';
-  for(const [seat,list] of Object.entries(oppMelds)){
-    const sn=['','下家','对家','上家'][parseInt(seat)];
+  const sn=['','下家','对家','上家']; let total=0,h='';
+  for(const[s,list]of Object.entries(melds)){
     for(let i=0;i<list.length;i++){
       total++;
-      h+=`<span class="meld-chip" onclick="rmMeld(${seat},${i})">${sn}:${list[i].map(c=>tshort(c)).join('')}<span class="rm">✕</span></span>`;
+      h+=`<span class="meld-chip" onclick="rmMeld(${s},${i})">${sn[parseInt(s)]}:${list[i].map(c=>ts(c)).join('')}<span class="rm">✕</span></span>`;
     }
   }
-  document.getElementById('meldList').innerHTML=h||'<span style="color:var(--text-muted)">暂无</span>';
-  document.getElementById('meldBadge').textContent=total+'组';
+  document.getElementById('meldList').innerHTML=h||'<span style="color:var(--muted);font-size:.55rem">暂无</span>';
+  document.getElementById('meldHint').textContent=total+'组';
 }
 
-// ── Collapse Toggle ──
-function toggleCollapse(id){
-  const body=document.getElementById(id);
-  const icons={discardSec:'discardIcon',meldSec:'meldIcon',lastSec:'lastIcon'};
-  const iconId=icons[id];
-  if(!body)return;
-  const isOpen=body.classList.contains('open');
-  body.classList.toggle('open');
-  if(iconId)document.getElementById(iconId).classList.toggle('open');
+// ════════════════ MODE / TOGGLES ════════════════
+function toggleMode(){
+  isDraw=!isDraw;
+  const p=document.getElementById('modePill');
+  p.textContent=isDraw?'当前摸牌':'对方出牌';
+  p.classList.toggle('on');
 }
-function updateBadges(){
+
+function tog(id){
+  const b=document.getElementById(id);
+  const arr=document.getElementById(id.replace('Sec','Arr'));
+  if(!b)return;
+  b.classList.toggle('on');
+  if(arr)arr.classList.toggle('on');
+}
+
+function updateHints(){
   const total=discards[1].length+discards[2].length+discards[3].length;
-  document.getElementById('discardBadge').textContent=total+'张';
+  document.getElementById('discardHint').textContent=total+'张';
 }
 
-// ── Hand to List ──
-function handToList(){
+// ════════════════ HAND TO LIST ════════════════
+function handArr(){
   const t=[];
-  for(const [c,n] of Object.entries(hand)) for(let i=0;i<n;i++) t.push(parseInt(c));
+  for(const[c,n]of Object.entries(hand))for(let i=0;i<n;i++)t.push(parseInt(c));
   return t.sort((a,b)=>a-b);
 }
 
-// ── Analyze ──
+// ════════════════ ANALYZE ════════════════
 async function analyze(){
-  const tiles=handToList();
+  const tiles=handArr();
   if(tiles.length<13){
     document.getElementById('resultArea').classList.add('show');
-    document.getElementById('resultContent').innerHTML=`<div class="error-bar">至少需要13张牌（当前${tiles.length}张）</div>`;
+    document.getElementById('resultContent').innerHTML=`<div class="error">至少需要 13 张牌，当前 ${tiles.length} 张</div>`;
     return;
   }
 
   const rd=document.getElementById('resultContent');
-  rd.innerHTML=`<div class="loading">分析中... 🀄</div>`;
+  rd.innerHTML=`<div class="loading">分析中 ⌛</div>`;
   document.getElementById('resultArea').classList.add('show');
   document.getElementById('resultArea').scrollIntoView({behavior:'smooth',block:'start'});
 
@@ -507,131 +536,152 @@ async function analyze(){
       opponent_melds:{},
       seat_wind:parseInt(document.getElementById('selWind').value),
       round_wind:parseInt(document.getElementById('selRound').value),
-      is_self_drawn:document.getElementById('selDraw').value==='true',
+      is_self_drawn:isDraw,
     };
     if(lastDisc!==null) body.last_discard=lastDisc;
-    for(const [s,l] of Object.entries(oppMelds)) if(l.length>0) body.opponent_melds[s]=l;
+    for(const[s,l]of Object.entries(melds))if(l.length>0)body.opponent_melds[s]=l;
 
     const resp=await fetch('/api/game-analyze',{
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify(body),
     });
     const data=await resp.json();
-    if(!resp.ok){rd.innerHTML=`<div class="error-bar">${data.detail||'分析失败'}</div>`;return}
+    if(!resp.ok){rd.innerHTML=`<div class="error">${data.detail||'分析失败'}</div>`;return}
 
     let h='';
 
+    // ── HERO: 最显眼的操作建议 ──
+    const hasAction=data.action_options&&data.action_options.length>0;
+    const hasDiscard=data.discard_options&&data.discard_options.length>0;
+    const bestDisc=hasDiscard?data.discard_options[0]:null;
+    const tsumo=hasAction?data.action_options.find(a=>a.action==='tsumo'):null;
+    const otherAct=hasAction?data.action_options.filter(a=>a.action!=='tsumo'):[];
+
+    // 胡牌优先
+    if(tsumo){
+      h+=`<div class="action-hero primary">
+        <div class="icon-box">🏆</div>
+        <div class="main">胡 ${tn(tsumo.tiles[0].code)} <span class="sub">${tsumo.fan}番 · 荣和</span></div>
+        <div class="side">${tsumo.fan}番</div>
+      </div>`;
+    }
+
+    // 最佳出牌
+    if(bestDisc){
+      const dc={low:'🟢',mid:'🟡',high:'🔴'}[bestDisc.danger_level]||'⚪';
+      const st=bestDisc.post_shanten===0?'听牌':bestDisc.post_shanten+'上听';
+      h+=`<div class="action-hero discard">
+        <div class="icon-box">${dc}</div>
+        <div class="main">打 ${tn(bestDisc.tile.code)} <span class="sub">${bestDisc.reason} · 进张${bestDisc.acceptance}</span></div>
+        <div class="side">${st}</div>
+      </div>`;
+    }
+
+    // 吃碰杠
+    for(const a of otherAct){
+      const al={chi:'🟦 吃',pon:'🟧 碰',kan:'🟪 杠'}[a.action]||a.action;
+      const tn2=a.tiles.map(t=>tn(t.code)).join('');
+      const st2=a.post_shanten===0?'听牌':a.post_shanten===-1?'胡牌':a.post_shanten+'上听';
+      h+=`<div class="action-hero action">
+        <div class="icon-box" style="font-size:.7rem">${al}</div>
+        <div class="main">${tn2} <span class="sub">→ ${st2} · 进张${a.acceptance}${a.fan>0?' · '+a.fan+'番':''}</span></div>
+        <div class="side" style="color:${a.post_shanten<=0?'var(--gold)':'var(--green)'}">${st2}</div>
+      </div>`;
+    }
+
     // ── Shanten ──
-    const sClass=data.shanten===0?'gold':data.shanten<=1?'green':data.shanten===-1?'red':'orange';
-    const sText=data.shanten===-1?'🏆 胡牌！':data.shanten===0?'🎯 听牌！':`⬆ ${data.shanten} 上听`;
-    h+=`<div class="result-card"><div class="result-label">向听数</div>
-      <div class="result-value ${sClass}">${sText}</div>`;
-    if(data.acceptance>0){
-      h+=`<div class="result-label" style="margin-top:4px">进张 ${data.acceptance} 张</div>
-        <div class="accept-chips">`;
-      for(const t of data.acceptance_tiles) h+=`<span class="accept-chip">${tname(t.code)}</span>`;
-      h+=`</div>`;
-    }
-    h+=`</div>`;
+    const sc=data.shanten===0?'gold':data.shanten<=1?'green':data.shanten===-1?'red':'orange';
+    const stxt=data.shanten===-1?'🏆 胡牌！':data.shanten===0?'🎯 听牌！':`⬆ ${data.shanten} 上听`;
+    h+=`<div style="display:flex;gap:4px;margin:4px 0">
+      <div style="flex:1;background:rgba(0,0,0,0.06);border-radius:6px;padding:5px 8px">
+        <div style="font-size:.55rem;color:var(--muted)">向听</div>
+        <div style="font-size:.85rem;font-weight:800;color:var(--${sc})">${stxt}</div>
+      </div>
+      <div style="flex:1;background:rgba(0,0,0,0.06);border-radius:6px;padding:5px 8px">
+        <div style="font-size:.55rem;color:var(--muted)">进张</div>
+        <div style="font-size:.85rem;font-weight:800;color:var(--green)">${data.acceptance} 张</div>
+      </div>
+    </div>`;
 
-    // ── Actions (tsumo first) ──
-    if(data.action_options&&data.action_options.length>0){
-      h+=`<div class="section-label">操作建议</div>`;
-      const tsumoA=data.action_options.filter(a=>a.action==='tsumo');
-      const otherA=data.action_options.filter(a=>a.action!=='tsumo');
-      
-      if(tsumoA.length>0){
-        const a=tsumoA[0];
-        h+=`<div class="action-card"><span class="action-badge tsumo">胡</span>
-          <span class="action-result" style="color:var(--gold-pale)">${tname(a.tiles[0].code)} · ${a.fan}番</span></div>`;
-        if(a.fan_items&&a.fan_items.length>0){
-          h+=`<div class="result-card" style="margin-top:-3px">`;
-          for(const item of a.fan_items.slice(0,6))
-            h+=`<div style="font-size:.6rem;padding:1px 0;color:var(--text-dim)">${item.name}<span style="float:right;color:var(--orange)">${item.fan}番</span></div>`;
-          h+=`</div>`;
-        }
-      }
-      
-      for(const a of otherA){
-        const al={chi:'吃',pon:'碰',kan:'杠'}[a.action]||a.action;
-        const ac=a.action;
-        const tn=a.tiles.map(t=>tname(t.code)).join('');
-        const st=a.post_shanten===0?'听牌':a.post_shanten===-1?'胡牌':a.post_shanten+'上听';
-        h+=`<div class="action-card"><span class="action-badge ${ac}">${al}</span>
-          <span class="action-result">${tn}<span class="sub"> → ${st} · 进张${a.acceptance}${a.fan>0?' · '+a.fan+'番':''}</span></span></div>`;
-      }
+    // ── Acceptance tiles ──
+    if(data.acceptance_tiles&&data.acceptance_tiles.length>0){
+      h+=`<div style="background:rgba(0,0,0,0.05);border-radius:6px;padding:4px 8px;margin-bottom:4px">
+        <div style="font-size:.5rem;color:var(--muted);margin-bottom:2px">进张牌</div>
+        <div style="display:flex;gap:3px;flex-wrap:wrap">`;
+      for(const t of data.acceptance_tiles)
+        h+=`<span style="padding:1px 6px;border-radius:8px;background:rgba(74,154,90,0.06);border:1px solid rgba(74,154,90,0.08);font-size:.6rem">${tn(t.code)}</span>`;
+      h+=`</div></div>`;
     }
 
-    // ── Discard Options ──
-    if(data.discard_options&&data.discard_options.length>0){
-      h+=`<div class="section-label">出牌建议</div>`;
+    // ── All discard options ──
+    if(hasDiscard&&data.discard_options.length>1){
+      h+=`<div class="listen-card"><div class="lbl">出牌对比</div>
+        <table class="listen-table"><tr><th>牌</th><th>打后</th><th>进张</th><th>危险</th></tr>`;
       for(const o of data.discard_options){
-        const dc={low:'low',mid:'mid',high:'high'}[o.danger_level]||'high';
-        const st=o.post_shanten===0?'听牌':o.post_shanten+'上听';
-        h+=`<div class="disc-row">
-          <div class="tile-box">${tshort(o.tile.code)}</div>
-          <div class="info">打 ${o.tile.name}<span class="sub"> ${o.reason}</span>
-            <span class="danger-badge ${dc}">${o.danger_level}</span></div>
-          <div class="stats">${st}<span class="sub">进张${o.acceptance}</span></div>
-        </div>`;
+        const dc2={low:'🟢',mid:'🟡',high:'🔴'}[o.danger_level]||'⚪';
+        const st3=o.post_shanten===0?'听牌':o.post_shanten+'上听';
+        h+=`<tr${o===data.discard_options[0]?' style="background:rgba(232,197,74,0.03)"':''}>
+          <td class="tn">${tn(o.tile.code)}</td><td>${st3}</td>
+          <td>${o.acceptance}</td><td>${dc2}</td></tr>`;
       }
+      h+=`</table></div>`;
     }
 
-    // ── Listen Analysis ──
+    // ── Listen ──
     if(data.listen_analysis&&data.listen_analysis.is_tenpai&&data.listen_analysis.options.length>0){
       const best=data.listen_analysis.options[0];
-      h+=`<div class="section-label">听牌</div>
-        <div class="result-card"><div class="result-label">🏆 最佳</div>
-        <div class="result-value gold">${tshort(best.tile.code)} · ${best.fan}番 · 剩${best.remaining}张</div></div>`;
-      
+      h+=`<div class="listen-card"><div class="lbl">🏆 最佳听牌</div>
+        <div style="font-size:.85rem;font-weight:800;color:var(--gold-pale);margin-bottom:4px">
+          ${tn(best.tile.code)} · ${best.fan}番 · 剩${best.remaining}张</div>`;
+
       if(best.fan_items&&best.fan_items.length>0){
-        h+=`<div class="result-card">`;
-        for(const item of best.fan_items.slice(0,8))
-          h+=`<div style="font-size:.65rem;padding:1px 0;color:var(--text-dim)">${item.name}<span style="float:right;color:var(--orange)">${item.fan}番</span></div>`;
+        h+=`<div style="background:rgba(0,0,0,0.04);border-radius:4px;padding:3px 6px;margin-bottom:4px">`;
+        for(const f of best.fan_items.slice(0,8))
+          h+=`<div class="fan-item">${f.name}<span class="fv">${f.fan}番</span></div>`;
         h+=`</div>`;
       }
-      
+
       if(data.listen_analysis.options.length>1){
-        h+=`<div class="result-card"><table class="listen-table"><tr><th>牌</th><th>剩</th><th>番</th><th>评分</th></tr>`;
+        h+=`<table class="listen-table"><tr><th>牌</th><th>剩</th><th>番</th><th>评分</th></tr>`;
         for(const o of data.listen_analysis.options){
-          const ib=o===data.listen_analysis.options[0];
-          h+=`<tr${ib?' style="background:rgba(212,175,55,0.04)"':''}>
-            <td class="tile-name">${tshort(o.tile.code)}</td><td>×${o.remaining}</td>
-            <td class="fan">${o.fan}番</td><td style="color:var(--green);font-weight:700">${o.score.toFixed(1)}</td></tr>`;
+          h+=`<tr${o===data.listen_analysis.options[0]?' style="background:rgba(232,197,74,0.03)"':''}>
+            <td class="tn">${tn(o.tile.code)}</td><td>×${o.remaining}</td>
+            <td class="fn" style="color:var(--orange);font-weight:700">${o.fan}番</td>
+            <td class="sc">${o.score.toFixed(1)}</td></tr>`;
         }
-        h+=`</table></div>`;
+        h+=`</table>`;
       }
+      h+=`</div>`;
     }
 
     // ── Defense ──
     if(data.defense&&data.defense.dangerous_tiles&&data.defense.dangerous_tiles.length>0){
-      h+=`<div class="section-label">防守</div><div class="result-card">
-        <div class="result-label">⚡ 危险（避免打出）</div><div>`;
+      h+=`<div class="def-section">
+        <div class="lbl">🔴 危险牌</div>`;
       for(const d of data.defense.dangerous_tiles.slice(0,10))
-        h+=`<span class="defense-tile danger">${tshort(d.tile)}</span>`;
+        h+=`<span class="def-chip danger">${tn(d.tile)}</span>`;
       h+=`</div>`;
       if(data.defense.safe_tiles&&data.defense.safe_tiles.length>0){
-        h+=`<div class="result-label" style="margin-top:4px">✅ 安全</div><div>`;
+        h+=`<div class="def-section">
+          <div class="lbl">🟢 安全牌</div>`;
         for(const s of data.defense.safe_tiles.slice(0,8))
-          h+=`<span class="defense-tile safe">${tshort(s.tile)}</span>`;
+          h+=`<span class="def-chip safe">${tn(s.tile)}</span>`;
         h+=`</div>`;
       }
-      h+=`</div>`;
     }
 
-    h+=`<div class="footer-note">${data.hand_display||''}</div>`;
     rd.innerHTML=h;
 
   }catch(e){
-    rd.innerHTML=`<div class="error-bar">请求失败: ${e.message}</div>`;
+    rd.innerHTML=`<div class="error">请求失败: ${e.message}</div>`;
   }
 }
 
-// ── Init ──
-renderHand();
-renderPlayers();
-renderDiscards();
-renderLastDiscard();
+// ════════════════ INIT ════════════════
+renderHand(); renderPlayers(); renderDisc(); renderLast(); renderMeldList();
+// Open discards by default
+document.getElementById('discardSec').classList.add('on');
+document.getElementById('discardArr').classList.add('on');
 </script>
 </body>
 </html>
