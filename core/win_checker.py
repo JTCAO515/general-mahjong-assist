@@ -403,6 +403,40 @@ def is_double_dragon_one_suit(tiles: List[int], melds: Optional[List[List[int]]]
     return True
 
 
+# ── 连七对检测 ───────────────────────────────────────
+
+def is_consecutive_seven_pairs(tiles: List[int], melds: Optional[List[List[int]]] = None) -> bool:
+    """连七对：同花色连续 7 个对子（如 11223344556677）"""
+    if melds:
+        return False
+    if len(tiles) != 14:
+        return False
+
+    counts = Counter(tiles)
+    # 必须 7 对且每对不能有 4 张相同
+    if len(counts) != 7:
+        return False
+    for code, cnt in counts.items():
+        s, r = decode(code)
+        if s in (FENG, JIAN):
+            return False  # 不能有字牌
+        if cnt != 2:
+            return False
+
+    # 同花色检查
+    suits_used = set(decode(code)[0] for code in counts)
+    if len(suits_used) != 1:
+        return False
+
+    # 连续点数组检查
+    ranks = sorted(decode(code)[1] for code in counts)
+    for i in range(1, len(ranks)):
+        if ranks[i] != ranks[i-1] + 1:
+            return False
+
+    return True
+
+
 # ── 统一胡牌检测入口 ─────────────────────────────────
 
 def check_all_wins(tiles: List[int], melds: Optional[List[List[int]]] = None) -> Dict[str, bool]:
@@ -419,6 +453,7 @@ def check_all_wins(tiles: List[int], melds: Optional[List[List[int]]] = None) ->
         "all_sequences": is_all_sequences_no_pairs(tiles, melds),
         "seven_stars": is_seven_stars(tiles, melds),
         "double_dragon": is_double_dragon_one_suit(tiles, melds),
+        "consecutive_pairs": is_consecutive_seven_pairs(tiles, melds),
     }
 
 

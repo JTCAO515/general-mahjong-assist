@@ -24,6 +24,7 @@ from core.hand_parser import Hand, tiles_to_rank_array, suit_rank_counts
 from core.win_checker import (
     is_standard_win, is_seven_pairs, is_thirteen_orphans,
     is_composite_dragon, is_all_sequences_no_pairs, is_seven_stars,
+    is_double_dragon_one_suit, is_consecutive_seven_pairs,
     THIRTEEN_ORPHANS,
 )
 
@@ -258,6 +259,30 @@ def _check_nine_gates(ctx: FanContext) -> int:
     return 88 if total_extra == 0 else 0
 
 
+@register_fan(88, "十三幺")
+def _check_thirteen_orphans_fan(ctx: FanContext) -> int:
+    """十三幺：13 种幺九牌各 1 + 1 种重复"""
+    if not _is_concealed(ctx):
+        return 0
+    return 88 if is_thirteen_orphans(ctx.hand.tiles, ctx.hand.melds) else 0
+
+
+@register_fan(88, "一色双龙会")
+def _check_double_dragon_one_suit_fan(ctx: FanContext) -> int:
+    """一色双龙会：同花色 11223355778899"""
+    if not _is_concealed(ctx):
+        return 0
+    return 88 if is_double_dragon_one_suit(ctx.hand.tiles, ctx.hand.melds) else 0
+
+
+@register_fan(88, "连七对")
+def _check_consecutive_seven_pairs_fan(ctx: FanContext) -> int:
+    """连七对：同花色连续 7 个对子"""
+    if not _is_concealed(ctx):
+        return 0
+    return 88 if is_consecutive_seven_pairs(ctx.hand.tiles, ctx.hand.melds) else 0
+
+
 @register_fan(88, "绿一色")
 def _check_all_green(ctx: FanContext) -> int:
     """全是绿色牌：2,3,4,6,8条 + 发"""
@@ -296,6 +321,18 @@ def _check_little_four_winds(ctx: FanContext) -> int:
         elif cnt == 2:
             wind_pair = True
     return 64 if wind_triplets == 3 and wind_pair else 0
+
+
+@register_fan(64, "清幺九")
+def _check_pure_terminals(ctx: FanContext) -> int:
+    """清幺九：只有 1 和 9 的数牌 + 所有字牌（全部风箭刻）"""
+    counts, melds = _split_hand(ctx)
+    for code in counts:
+        s, r = decode(code)
+        if s in (WAN, TIAO, BING):
+            if r not in (1, 9):
+                return 0
+    return 64
 
 
 @register_fan(64, "小三元")
@@ -389,6 +426,36 @@ def _check_seven_stars(ctx: FanContext) -> int:
     return 32 if is_seven_stars(ctx.hand.tiles, ctx.hand.melds) else 0
 
 
+@register_fan(32, "一色四步高")
+def _check_one_suit_four_step_sequences(ctx: FanContext) -> int:
+    """一色四步高：同花色 4 组顺子，每组起始点递增 1"""
+    if not _is_concealed(ctx):
+        return 0
+    counts, melds = _split_hand(ctx)
+    for suit in [WAN, TIAO, BING]:
+        rank_arr = tiles_to_rank_array(counts, suit)
+        for start in range(1, 7):  # start, start+1, start+2, start+3
+            if start + 3 > 7:
+                break
+            ok = True
+            for s in range(4):
+                if not (rank_arr[start + s - 1] >= 1 and
+                        rank_arr[start + s] >= 1 and
+                        rank_arr[start + s + 1] >= 1):
+                    ok = False
+                    break
+            if ok:
+                return 32
+    return 0
+
+
+@register_fan(32, "三杠")
+def _check_triple_kong(ctx: FanContext) -> int:
+    """3 个杠子（明杠或暗杠）"""
+    kongs = sum(1 for m in ctx.hand.melds if len(m) == 4)
+    return 32 if kongs >= 3 else 0
+
+
 # ═══════════════════════════════════════════════════════
 # 24 番
 # ═══════════════════════════════════════════════════════
@@ -441,6 +508,14 @@ def _check_all_unrelated(ctx: FanContext) -> int:
     if not _is_concealed(ctx):
         return 0
     return 12 if is_all_sequences_no_pairs(ctx.hand.tiles, ctx.hand.melds) else 0
+
+
+@register_fan(12, "组合龙")
+def _check_composite_dragon_fan(ctx: FanContext) -> int:
+    """组合龙：三花色 147/258/369 各一组顺子"""
+    if not _is_concealed(ctx):
+        return 0
+    return 12 if is_composite_dragon(ctx.hand.tiles, ctx.hand.melds) else 0
 
 
 @register_fan(12, "大于五")
@@ -1104,6 +1179,27 @@ def _check_kong_discard_win(ctx: FanContext) -> int:
     return 8 if not ctx.is_self_drawn and ctx.is_kong_draw else 0
 
 
+@register_fan(8, "推不倒")
+def _check_undroppable(ctx: FanContext) -> int:
+    """推不倒：所有牌旋转 180° 后形状相同（饼全系 + 万 1-5,8,9 / 条 1-5,8,9 + 发）"""
+    reversible_ranks = {1, 2, 3, 4, 5, 8, 9}
+    counts, melds = _split_hand(ctx)
+    for code in counts:
+        s, r = decode(code)
+        if s == BING:
+            continue  # 所有饼都是推不倒
+        if s == WAN and r in reversible_ranks:
+            continue
+        if s == TIAO and r in reversible_ranks:
+            continue
+        if s == JIAN and r == 2:  # 发财
+            continue
+        if s == FENG:
+            return 0
+        return 0
+    return 8
+
+
 # ═══════════════════════════════════════════════════════
 # 6 番（续）
 # ═══════════════════════════════════════════════════════
@@ -1127,6 +1223,23 @@ def _check_double_exposed_kong(ctx: FanContext) -> int:
     """2 个明杠"""
     exposed_kongs = sum(1 for m in ctx.hand.melds if len(m) == 4)
     return 4 if exposed_kongs >= 2 else 0
+
+
+@register_fan(4, "和绝张")
+def _check_last_tile_win(ctx: FanContext) -> int:
+    """和绝张：胡最后一张被碰/杠的牌（检查手牌中至少已经有 3 张已知）"""
+    if ctx.win_tile is None:
+        return 0
+    # 统计手牌中胡牌的同点数牌数量
+    w_s, w_r = decode(ctx.win_tile)
+    cnt = sum(1 for t in ctx.hand.tiles if decode(t)[0] == w_s and decode(t)[1] == w_r)
+    # 加上副露中的同牌
+    for m in ctx.hand.melds:
+        for t in m:
+            if decode(t)[0] == w_s and decode(t)[1] == w_r:
+                cnt += 1
+    # 已知 >= 3 张，胡的是最后一张（或最后两张中的一张）
+    return 4 if cnt >= 3 else 0
 
 
 # ═══════════════════════════════════════════════════════
@@ -1241,6 +1354,7 @@ def is_any_win_fast(tiles: List[int], melds: Optional[List[List[int]]] = None) -
         is_standard_win, is_seven_pairs, is_thirteen_orphans,
         is_composite_dragon, is_all_sequences_no_pairs,
         is_seven_stars, is_double_dragon_one_suit,
+        is_consecutive_seven_pairs,
     )
     return (is_standard_win(tiles, melds) or
             is_seven_pairs(tiles, melds) or
@@ -1248,4 +1362,5 @@ def is_any_win_fast(tiles: List[int], melds: Optional[List[List[int]]] = None) -
             is_composite_dragon(tiles, melds) or
             is_all_sequences_no_pairs(tiles, melds) or
             is_seven_stars(tiles, melds) or
-            is_double_dragon_one_suit(tiles, melds))
+            is_double_dragon_one_suit(tiles, melds) or
+            is_consecutive_seven_pairs(tiles, melds))
