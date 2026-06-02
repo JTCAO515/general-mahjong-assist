@@ -340,7 +340,7 @@ const ALL=[],NAMES={}; SUITS.forEach(s=>s.tiles.forEach(r=>{
 function tn(c){return NAMES[c]||'?'}
 function ts(c){
   const t=ALL.find(x=>x.code===c); if(!t)return'?';
-  if(t.suit<=2)return['','万','条','饼'][t.suit]+t.rank;
+  if(t.suit<=2)return t.rank+['万','条','饼'][t.suit];
   return '东南西北中发白'[t.rank-1+(t.suit===3?0:4)];
 }
 function tcolor(c){const t=ALL.find(x=>x.code===c);return t?t.color:'wan'}
@@ -352,15 +352,14 @@ let isDraw=true; // 自家摸牌
 
 // ════════════════ RENDER HAND ════════════════
 function renderHand(){
-  // strip
+  // strip — merge same tiles: "1万×3" instead of 3 separate cards
   const codes=Object.keys(hand).map(Number).sort((a,b)=>a-b);
   let hs='';
-  if(codes.length===0) hs='<div class="empty">点牌选入手中</div>';
+  if(codes.length===0) hs='<div class="empty">点牌选入手中 · 长按清除</div>';
   else for(const c of codes){
     const n=hand[c]||0;
     const col=tcolor(c);
-    for(let i=0;i<n;i++)
-      hs+=`<div class="tile-card suit-${col}" onclick="rmOne(${c})">${ts(c)}<span class="x">✕</span></div>`;
+    hs+=`<div class="tile-card suit-${col}" onclick="rmOne(${c})" title="点移除一张">${ts(c)}${n>1?`<span style="font-size:.45rem;opacity:.7">×${n}</span>`:''}<span class="x">✕</span></div>`;
   }
   document.getElementById('handStrip').innerHTML=hs;
 
@@ -396,6 +395,11 @@ function renderHand(){
   });
 
   document.getElementById('resultArea').classList.remove('show');
+
+  // pulse analyze button when hand has enough tiles
+  const btn=document.querySelector('.analyze-btn');
+  if(total>=13)btn.style.background='linear-gradient(135deg,rgba(232,197,74,0.25),rgba(232,197,74,0.15))';
+  else btn.style.background='linear-gradient(135deg,rgba(232,197,74,0.15),rgba(232,197,74,0.08))';
 }
 
 function tapHand(c){
@@ -434,12 +438,28 @@ function renderDisc(){
     h+=`</div>`;
   }
   document.getElementById('discardGrid').innerHTML=h;
+
+  // long press for discard removal
+  document.querySelectorAll('#discardGrid .tile').forEach(el=>{
+    let timer; let code;
+    el.addEventListener('pointerdown',function(e){
+      const m=this.getAttribute('onclick');
+      if(m) code=parseInt(m.match(/\d+/)[0]);
+      timer=setTimeout(()=>{removeDisc(code);timer=null},400);
+    });
+    el.addEventListener('pointerup',()=>{if(timer){clearTimeout(timer);timer=null}});
+    el.addEventListener('pointerleave',()=>{if(timer){clearTimeout(timer);timer=null}});
+  });
 }
 function tapDisc(c){
-  const idx=discards[curP].indexOf(c);
-  if(idx>=0) discards[curP].splice(idx,1); else discards[curP].push(c);
+  if((discards[curP]||[]).filter(x=>x===c).length>=4)return;
+  discards[curP].push(c);
   renderDisc();renderPlayers();updateHints();
   document.getElementById('resultArea').classList.remove('show');
+}
+function removeDisc(c){
+  discards[curP]=discards[curP].filter(x=>x!==c);
+  renderDisc();renderPlayers();updateHints();
 }
 
 // ════════════════ LAST DISCARD ════════════════
@@ -570,7 +590,7 @@ async function analyze(){
     if(bestDisc){
       const dc={low:'🟢',mid:'🟡',high:'🔴'}[bestDisc.danger_level]||'⚪';
       const st=bestDisc.post_shanten===0?'听牌':bestDisc.post_shanten+'上听';
-      h+=`<div class="action-hero discard">
+      h+=`<div class="action-hero discard" onclick="rmOne(${bestDisc.tile.code});renderHand();document.getElementById('resultArea').classList.remove('show')">
         <div class="icon-box">${dc}</div>
         <div class="main">打 ${tn(bestDisc.tile.code)} <span class="sub">${bestDisc.reason} · 进张${bestDisc.acceptance}</span></div>
         <div class="side">${st}</div>
