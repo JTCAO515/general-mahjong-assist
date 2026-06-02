@@ -14,6 +14,7 @@
 
 from typing import Dict, List, Tuple, Optional, Set
 from collections import Counter
+from functools import lru_cache
 
 from core.tile import (
     decode, encode,
@@ -458,6 +459,17 @@ def check_all_wins(tiles: List[int], melds: Optional[List[List[int]]] = None) ->
 
 
 def is_any_win(tiles: List[int], melds: Optional[List[List[int]]] = None) -> bool:
-    """是否可胡（任意胡牌型）"""
+    """是否可胡（任意胡牌型），带缓存"""
+    key = (tuple(sorted(tiles)),
+           tuple(tuple(sorted(m)) for m in (melds or [])))
+    return _is_any_win_cached(*key)
+
+
+@lru_cache(maxsize=5000)
+def _is_any_win_cached(tiles_tuple: Tuple[int, ...],
+                        melds_tuple: Tuple[Tuple[int, ...], ...] = ()) -> bool:
+    """缓存的胡牌检测"""
+    tiles = list(tiles_tuple)
+    melds = [list(m) for m in melds_tuple] if melds_tuple else None
     results = check_all_wins(tiles, melds)
     return any(results.values())

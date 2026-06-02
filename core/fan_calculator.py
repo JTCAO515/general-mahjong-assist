@@ -1149,7 +1149,7 @@ def _check_exposed_kong(ctx: FanContext) -> int:
     return 0
 
 
-@register_fan(1, "单钓")
+@register_fan(2, "单钓将")
 def _check_single_wait(ctx: FanContext) -> int:
     """单钓将：等一张牌当将"""
     if not _is_concealed(ctx):

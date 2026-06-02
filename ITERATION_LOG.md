@@ -104,3 +104,40 @@ bash start-web.sh   # → http://localhost:8778
 cd ~/projects/general-mahjong-assist
 bash start-web.sh   # → http://localhost:8778
 ```
+
+
+## 迭代 004: 四方向深度推进 — 补番+缓存+蒙特卡洛+CI/CD
+
+**日期:** 2026-06-02
+**状态:** ✅ 76/81 番种, 183 测试, 四方向全部完成
+
+### 改动内容
+
+#### Phase 1 — 番种补全
+- **单钓将**: 番值从 1→2 番（对齐官方 1998 规则）
+
+#### Phase 2 — 性能优化
+- **win_checker.py**: `is_any_win` 加 `lru_cache(maxsize=5000)` 缓存
+- **shanten.py**: `calculate_shanten` 加 `lru_cache(maxsize=5000)` 缓存
+
+#### Phase 3 — 蒙特卡洛模拟决策引擎
+- **新建 `decision/monte_carlo.py`**: 随机摸牌模拟 → 统计胜率/均番/EV
+- **集成到 game_engine**: `full_analysis(state, use_monte_carlo=True)` 可选启用
+
+#### Phase 4 — CI/CD
+- **新建 `.github/workflows/test.yml`**: push/PR 自动 pytest
+
+### 新文件
+| 文件 | 说明 |
+|------|------|
+| `decision/monte_carlo.py` | 蒙特卡洛模拟引擎 |
+| `.github/workflows/test.yml` | GitHub Actions CI |
+| `docs/ITERATION_PLAN.md` | 迭代计划文档 |
+
+### 统计
+| 指标 | 值 |
+|------|-----|
+| 番种 | **76/81** |
+| 测试 | **183** |
+| 新文件 | +3 |
+| 修改文件 | 4 |

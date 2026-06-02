@@ -97,6 +97,7 @@ class GameAnalysis:
     action_options: List[ActionOption] = field(default_factory=list)    # 吃碰杠建议
     listen_analysis: Optional[Dict] = None   # 听牌分析（如果听牌）
     defense: Optional[DefenseInfo] = None    # 防守信息
+    monte_carlo: Optional[List[Dict]] = None  # 蒙特卡洛模拟EV（如果启用）
 
 
 # ── 剩余牌池计算 ──────────────────────────────────────
@@ -489,8 +490,19 @@ def analyze_listen_state(hand: List[int],
 
 # ── 全面分析入口 ──────────────────────────────────────
 
-def full_analysis(state: GameState) -> GameAnalysis:
-    """全面牌局分析"""
+def full_analysis(state: GameState, use_monte_carlo: bool = False,
+                 mc_simulations: int = 500, mc_draws: int = 8) -> GameAnalysis:
+    """全面牌局分析
+
+    Args:
+        state: 牌局状态
+        use_monte_carlo: 是否启用蒙特卡洛模拟
+        mc_simulations: 每张牌的模拟局数
+        mc_draws: 每局摸牌次数
+
+    Returns:
+        GameAnalysis 包含完整分析结果
+    """
     
     # 1. 计算剩余牌池
     remaining = build_remaining(
@@ -543,7 +555,19 @@ def full_analysis(state: GameState) -> GameAnalysis:
     # 6. 防守分析
     defense = analyze_defense(state.discards, remaining)
 
-    # 7. 去掉 shanten_types 里重复的信息
+    # 7. 蒙特卡洛模拟
+    mc_results = None
+    if use_monte_carlo and len(state.hand) >= 14:
+        try:
+            from decision.monte_carlo import evaluate_all_discards
+            mc_results = evaluate_all_discards(
+                state.hand, state.melds, remaining,
+                simulations=mc_simulations, max_draws=mc_draws,
+            )
+        except Exception as e:
+            mc_results = [{"error": str(e)}]
+
+    # 8. 去掉 shanten_types 里重复的信息
     shanten_types = {k: v for k, v in shanten_info.items() if k != "min"}
 
     return GameAnalysis(
@@ -556,4 +580,5 @@ def full_analysis(state: GameState) -> GameAnalysis:
         action_options=action_options,
         listen_analysis=listen_analysis,
         defense=defense,
+        monte_carlo=mc_results,
     )

@@ -283,17 +283,20 @@ def shanten_composite_dragon(tiles: List[int]) -> int:
 def calculate_shanten(tiles: List[int],
                       melds: Optional[List[List[int]]] = None,
                       draw_tile: Optional[int] = None) -> Dict[str, int]:
-    """计算所有向听数值
+    """计算所有向听数值（带缓存）"""
+    key = (tuple(sorted(tiles)),
+           tuple(tuple(sorted(m)) for m in (melds or [])),
+           draw_tile)
+    return dict(_calculate_shanten_cached(*key))
 
-    Args:
-        tiles: 手牌（13 或 14 张）
-        melds: 副露列表
-        draw_tile: 刚摸的牌（如果有）
 
-    Returns:
-        {向听类型: 向听数}
-        其中 "min" 为最小有效向听数
-    """
+@lru_cache(maxsize=5000)
+def _calculate_shanten_cached(tiles_tuple: Tuple[int, ...],
+                               melds_tuple: Tuple[Tuple[int, ...], ...] = (),
+                               draw_tile: Optional[int] = None) -> Tuple[Tuple[str, int], ...]:
+    """缓存的向听数计算"""
+    tiles = list(tiles_tuple)
+    melds = [list(m) for m in melds_tuple] if melds_tuple else []
     if melds is None:
         melds = []
 
