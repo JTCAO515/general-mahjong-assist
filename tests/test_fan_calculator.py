@@ -205,10 +205,12 @@ def test_not_a_winning_hand():
 
 def test_less_than_8_fan():
     """小于 8 番不起胡"""
-    # 111万 345万 678万 999条 55条 → 幺九刻2+双暗刻2+无字1+自摸1=6 < 8
-    tiles = [_w(1)] * 3 + [_w(3), _w(4), _w(5)] + [_w(6), _w(7), _w(8)] + \
-            [_t(9)] * 3 + [_t(5)] * 2
-    ctx = FanContext(hand=Hand(tiles), win_tile=_t(5), is_self_drawn=True)
+    # 有副露：111万(碰) 999条(碰) + 345万 678万 55条 → 自摸
+    # 幺九刻2+双暗刻2+无字1 = 5 < 8
+    tiles = [_w(3), _w(4), _w(5)] + [_w(6), _w(7), _w(8)] + [_t(5)] * 2
+    melds = [[_w(1)] * 3, [_t(9)] * 3]
+    ctx = FanContext(hand=Hand(tiles, melds), win_tile=_t(5),
+                    is_self_drawn=True)
     result = calculate_fan(ctx)
     assert result.total == 0, f"Expected 0 (under 8), got {result.total} {result.items}"
 

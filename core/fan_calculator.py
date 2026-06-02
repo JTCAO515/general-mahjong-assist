@@ -833,6 +833,218 @@ def _check_all_melds_from_others(ctx: FanContext) -> int:
 
 
 # ═══════════════════════════════════════════════════════
+# ── 新增番种 Batch 2（2026-06-02） ────────────────
+# ═══════════════════════════════════════════════════════
+
+def _wait_pattern(counts: Dict[int, int], suit: int,
+                  win_tile: int) -> str:
+    """判断听牌形状：边张/坎张/单钓"""
+    s, r = decode(win_tile)
+    # 单钓：将牌
+    if s == suit:
+        if counts.get(win_tile, 0) == 2:
+            return "pair"
+    # TODO: 完整判断需要知道面子结构
+    return "other"
+
+
+@register_fan(24, "全双刻")
+def _check_all_even_pungs(ctx: FanContext) -> int:
+    """全是偶数点数的刻子+将"""
+    counts, melds = _split_hand(ctx)
+    for m in melds:
+        s, r = decode(m[0])
+        if s in (WAN, TIAO, BING):
+            if r % 2 == 1:
+                return 0
+    for code, cnt in counts.items():
+        if cnt == 0:
+            continue
+        s, r = decode(code)
+        if s in (WAN, TIAO, BING):
+            if cnt >= 3 and r % 2 == 1:
+                return 0
+            if cnt == 2 and r % 2 == 1:
+                return 0
+    return 24
+
+
+@register_fan(16, "一色三步高")
+def _check_one_suit_three_steps(ctx: FanContext) -> int:
+    """同花色 3 个递增顺子（如 123 234 345）"""
+    if not _is_concealed(ctx):
+        return 0
+    counts, melds = _split_hand(ctx)
+    for suit in [WAN, TIAO, BING]:
+        base = tiles_to_rank_array(counts, suit)
+        for start in range(1, 6):
+            # 尝试提取 3 个连续递增顺子（从相同花色）
+            arr = list(base)
+            ok = True
+            for offset in range(3):
+                i = start - 1 + offset
+                if arr[i] >= 1 and arr[i+1] >= 1 and arr[i+2] >= 1:
+                    arr[i] -= 1
+                    arr[i+1] -= 1
+                    arr[i+2] -= 1
+                else:
+                    ok = False
+                    break
+            if ok:
+                return 16
+    return 0
+
+
+@register_fan(16, "三暗刻")
+def _check_three_concealed_pungs(ctx: FanContext) -> int:
+    """3 个暗刻（门清时所有刻子都是暗刻）"""
+    counts, melds = _split_hand(ctx)
+    if _is_concealed(ctx):
+        # 门清时，所有刻子都是暗刻
+        concealed = 0
+        for code, cnt in counts.items():
+            s, r = decode(code)
+            if cnt >= 3:
+                concealed += 1
+        return 16 if concealed >= 3 else 0
+    # 有副露时，计算未副露的刻子
+    concealed = 0
+    for code, cnt in counts.items():
+        if cnt >= 3:
+            concealed += 1
+    return 16 if concealed >= 3 else 0
+
+
+@register_fan(12, "三风刻")
+def _check_three_wind_pungs(ctx: FanContext) -> int:
+    """3 个风牌刻子（东南西北任选 3）"""
+    counts, melds = _split_hand(ctx)
+    wind_triplets = _count_honor_triplets_by_suit(counts, FENG)
+    for m in melds:
+        s, _ = decode(m[0])
+        if s == FENG and len(set(m)) == 1:
+            wind_triplets += 1
+    return 12 if wind_triplets >= 3 else 0
+
+
+@register_fan(6, "三色三步高")
+def _check_three_suit_three_steps(ctx: FanContext) -> int:
+    """三种花色各一个递增顺子：如 123万 234条 345饼"""
+    if not _is_concealed(ctx):
+        return 0
+    counts, melds = _split_hand(ctx)
+    # 每种花色找一个顺子，起始点数依次 +1
+    suits = [WAN, TIAO, BING]
+    for start in range(1, 8):
+        ok = True
+        for i, suit in enumerate(suits):
+            rank_arr = tiles_to_rank_array(counts, suit)
+            s = start + i
+            if s > 7:
+                ok = False
+                break
+            if not (rank_arr[s-1] >= 1 and rank_arr[s] >= 1 and rank_arr[s+1] >= 1):
+                ok = False
+                break
+        if ok:
+            return 6
+    return 0
+
+
+@register_fan(4, "不求人")
+def _check_self_drawn_concealed(ctx: FanContext) -> int:
+    """门清自摸"""
+    return 4 if _is_concealed(ctx) and ctx.is_self_drawn else 0
+
+
+@register_fan(4, "喜相逢")
+def _check_identical_sequence_two_suits(ctx: FanContext) -> int:
+    """两种花色相同顺子（如 123万 123条）"""
+    if not _is_concealed(ctx):
+        return 0
+    counts, melds = _split_hand(ctx)
+    for start in range(1, 8):
+        suits_have = 0
+        for suit in [WAN, TIAO, BING]:
+            rank_arr = tiles_to_rank_array(counts, suit)
+            if rank_arr[start-1] >= 1 and rank_arr[start] >= 1 and rank_arr[start+1] >= 1:
+                suits_have += 1
+        if suits_have >= 2:
+            return 4
+    return 0
+
+
+@register_fan(2, "双同刻")
+def _check_two_suit_same_pung(ctx: FanContext) -> int:
+    """两种花色相同点数的刻子"""
+    counts, melds = _split_hand(ctx)
+    for rank in range(1, 10):
+        count_suits = 0
+        for suit in [WAN, TIAO, BING]:
+            cnt = sum(c for c_code, c in counts.items()
+                      if decode(c_code)[0] == suit and decode(c_code)[1] == rank)
+            if cnt >= 3:
+                count_suits += 1
+        if count_suits >= 2:
+            return 2
+    return 0
+
+
+@register_fan(1, "连六")
+def _check_six_consecutive(ctx: FanContext) -> int:
+    """同花色 6 张连续点数（如 1-6 或 4-9）"""
+    counts, melds = _split_hand(ctx)
+    for suit in [WAN, TIAO, BING]:
+        rank_arr = tiles_to_rank_array(counts, suit)
+        for i in range(4):
+            if all(rank_arr[i + j] >= 1 for j in range(6)):
+                return 1
+    return 0
+
+
+@register_fan(1, "老少副")
+def _check_young_old_side(ctx: FanContext) -> int:
+    """同花色 123 + 789 """
+    counts, melds = _split_hand(ctx)
+    for suit in [WAN, TIAO, BING]:
+        rank_arr = tiles_to_rank_array(counts, suit)
+        if (rank_arr[0] >= 1 and rank_arr[1] >= 1 and rank_arr[2] >= 1 and
+            rank_arr[6] >= 1 and rank_arr[7] >= 1 and rank_arr[8] >= 1):
+            return 1
+    return 0
+
+
+@register_fan(1, "明杠")
+def _check_exposed_kong(ctx: FanContext) -> int:
+    """有明杠"""
+    for m in ctx.hand.melds:
+        if len(m) == 4:  # 杠
+            # 明杠：碰后再摸到第4张
+            return 1
+    return 0
+
+
+@register_fan(1, "单钓")
+def _check_single_wait(ctx: FanContext) -> int:
+    """单钓将：等一张牌当将"""
+    if not _is_concealed(ctx):
+        return 0
+    # 手牌13张 + 点炮那张 = 14张胡牌
+    # 单钓：等待的牌与手牌中已有的某张相同，组成将
+    # 简单判断：手牌中只有 1 种牌数量为 1，且胡的就是那张牌
+    counts, melds = _split_hand(ctx)
+    # 不要胡牌那张
+    tiles_no_win = list(ctx.hand.tiles)
+    if ctx.win_tile in tiles_no_win:
+        tiles_no_win.remove(ctx.win_tile)
+    counts_no_win = Counter(tiles_no_win)
+    singles = [code for code, cnt in counts_no_win.items() if cnt == 1]
+    if len(singles) == 1 and singles[0] == ctx.win_tile:
+        return 1
+    return 0
+
+
+# ═══════════════════════════════════════════════════════
 # ── 计算入口 ───────────────────────────────────────
 # ═══════════════════════════════════════════════════════
 
@@ -863,10 +1075,7 @@ def calculate_fan(ctx: FanContext) -> FanResult:
             if fan > 0:
                 result.add(name, fan)
                 if result.total >= 88:
-                    break
-        if result.total >= 88:
-            break
-
+                    pass  # 到达上限仍继续检测
     # 起胡门槛
     if result.total < 8:
         result.items = []
