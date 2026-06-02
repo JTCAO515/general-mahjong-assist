@@ -239,3 +239,30 @@ def test_half_flush_all_triplets():
     names = [n for n, _ in result.items]
     assert "碰碰和" in names, f"Expected 碰碰和, got {names}"
     assert "断幺九" in names, f"Expected 断幺九, got {names}"
+
+
+# ═══════════════════════════════════════════════════════
+# ── 新增番种测试 ─────────────────────────────────
+# ═══════════════════════════════════════════════════════
+
+class TestNewFans:
+    """新增 11 种番种的测试"""
+
+    def test_full_flush(self):
+        """清一色 24番：全部万子"""
+        tiles = [_w(1), _w(2), _w(3)] + [_w(3), _w(4), _w(5)] + \
+                [_w(5), _w(6), _w(7)] + [_w(7), _w(8), _w(9)] + [_w(5)] * 2
+        ctx = FanContext(hand=Hand(tiles), win_tile=_w(5))
+        result = calculate_fan(ctx)
+        names = [n for n, _ in result.items]
+        assert "清一色" in names, f"Expected 清一色, got {names}"
+
+    def test_full_flush_all_pungs(self):
+        """清一色+碰碰和+断幺九 """
+        tiles = [_w(2)] * 3 + [_w(3)] * 3 + [_w(4)] * 3 + [_w(6)] * 3 + [_w(8)] * 2
+        ctx = FanContext(hand=Hand(tiles), win_tile=_w(8))
+        result = calculate_fan(ctx)
+        names = [n for n, _ in result.items]
+        assert "清一色" in names
+        assert "碰碰和" in names
+        assert "断幺九" in names

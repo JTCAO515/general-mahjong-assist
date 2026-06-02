@@ -652,6 +652,187 @@ def _check_no_honors(ctx: FanContext) -> int:
 
 
 # ═══════════════════════════════════════════════════════
+# ── 新增番种（2026-06-02） ─────────────────────────
+# ═══════════════════════════════════════════════════════
+
+def _count_triplets_family(counts: Dict[int, int], suit: int) -> List[int]:
+    """返回一个花色中有刻子的点数列表"""
+    rank_arr = tiles_to_rank_array(counts, suit)
+    return [i + 1 for i, c in enumerate(rank_arr) if c >= 3]
+
+
+@register_fan(64, "大四喜")
+def _check_great_four_winds(ctx: FanContext) -> int:
+    """东南西北各一刻（或杠）"""
+    counts, melds = _split_hand(ctx)
+    triplets = _count_honor_triplets_by_suit(counts, FENG)
+    for m in melds:
+        s, _ = decode(m[0])
+        if s == FENG and len(set(m)) == 1:
+            triplets += 1
+    return 64 if triplets >= 4 else 0
+
+
+def _count_honor_triplets_by_suit(counts: Dict[int, int], suit: int) -> int:
+    """计算某字牌花色的刻子数（按点数计）"""
+    triplets = 0
+    for code, cnt in counts.items():
+        s, r = decode(code)
+        if s == suit and cnt >= 3:
+            triplets += 1
+    return triplets
+
+
+@register_fan(48, "大三元")
+def _check_great_three_dragons(ctx: FanContext) -> int:
+    """中发白各一刻（或杠）"""
+    counts, melds = _split_hand(ctx)
+    triplets = _count_honor_triplets_by_suit(counts, JIAN)
+    for m in melds:
+        s, _ = decode(m[0])
+        if s == JIAN and len(set(m)) == 1:
+            triplets += 1
+    return 48 if triplets >= 3 else 0
+
+
+@register_fan(32, "混幺九")
+def _check_mixed_terminals(ctx: FanContext) -> int:
+    """只有幺九牌和字牌"""
+    counts, melds = _split_hand(ctx)
+    for code in counts:
+        s, r = decode(code)
+        if s in (WAN, TIAO, BING) and r not in (1, 9):
+            return 0
+    for m in melds:
+        s, r = decode(m[0])
+        if s in (WAN, TIAO, BING) and r not in (1, 9):
+            return 0
+    return 32
+
+
+@register_fan(24, "清一色")
+def _check_full_flush(ctx: FanContext) -> int:
+    """全部一种花色（万/条/饼），无字牌"""
+    counts, melds = _split_hand(ctx)
+    suits_in_hand = set()
+    for code in counts:
+        s, r = decode(code)
+        if s in (FENG, JIAN):
+            return 0
+        suits_in_hand.add(s)
+    for m in melds:
+        s, r = decode(m[0])
+        if s in (FENG, JIAN):
+            return 0
+        suits_in_hand.add(s)
+    return 24 if len(suits_in_hand) == 1 else 0
+
+
+@register_fan(24, "一色三节高")
+def _check_one_suit_triple_steps(ctx: FanContext) -> int:
+    """同花色三个连续点数的刻子"""
+    counts, melds = _split_hand(ctx)
+    for suit in [WAN, TIAO, BING]:
+        rank_arr = tiles_to_rank_array(counts, suit)
+        for i in range(7):
+            if rank_arr[i] >= 3 and rank_arr[i+1] >= 3 and rank_arr[i+2] >= 3:
+                return 24
+    return 0
+
+
+@register_fan(24, "全大")
+def _check_all_big(ctx: FanContext) -> int:
+    """所有数牌 ≥ 7，无字牌"""
+    counts, melds = _split_hand(ctx)
+    for code in counts:
+        s, r = decode(code)
+        if s in (FENG, JIAN):
+            return 0
+        if r < 7:
+            return 0
+    return 24
+
+
+@register_fan(24, "全中")
+def _check_all_middle(ctx: FanContext) -> int:
+    """所有数牌 4-6，无字牌"""
+    counts, melds = _split_hand(ctx)
+    for code in counts:
+        s, r = decode(code)
+        if s in (FENG, JIAN):
+            return 0
+        if r < 4 or r > 6:
+            return 0
+    return 24
+
+
+@register_fan(24, "全小")
+def _check_all_small(ctx: FanContext) -> int:
+    """所有数牌 ≤ 3，无字牌"""
+    counts, melds = _split_hand(ctx)
+    for code in counts:
+        s, r = decode(code)
+        if s in (FENG, JIAN):
+            return 0
+        if r > 3:
+            return 0
+    return 24
+
+
+@register_fan(16, "三色同刻")
+def _check_three_suit_same_pung(ctx: FanContext) -> int:
+    """三种花色相同点数的刻子"""
+    counts, melds = _split_hand(ctx)
+    for rank in range(1, 10):
+        count_suits = 0
+        for suit in [WAN, TIAO, BING]:
+            cnt = sum(c for c_code, c in counts.items()
+                      if decode(c_code)[0] == suit and decode(c_code)[1] == rank)
+            if cnt >= 3:
+                count_suits += 1
+        if count_suits >= 3:
+            return 16
+    return 0
+
+
+@register_fan(8, "三色同顺")
+def _check_three_suit_same_sequence(ctx: FanContext) -> int:
+    """三种花色同一顺子（门清）"""
+    if not _is_concealed(ctx):
+        return 0
+    counts, melds = _split_hand(ctx)
+    for start in range(1, 8):
+        count_suits = 0
+        for suit in [WAN, TIAO, BING]:
+            rank_arr = tiles_to_rank_array(counts, suit)
+            if rank_arr[start-1] >= 1 and rank_arr[start] >= 1 and rank_arr[start+1] >= 1:
+                count_suits += 1
+        if count_suits >= 3:
+            return 8
+    return 0
+
+
+@register_fan(8, "海底捞月")
+def _check_last_draw(ctx: FanContext) -> int:
+    """摸最后一张牌胡牌（自摸）"""
+    return 8 if ctx.is_last_draw and ctx.is_self_drawn else 0
+
+
+@register_fan(6, "全求人")
+def _check_all_melds_from_others(ctx: FanContext) -> int:
+    """全部吃碰杠 + 单钓点炮胡"""
+    tiles, melds = ctx.hand.tiles, len(ctx.hand.melds)
+    if melds < 4:
+        return 0
+    if ctx.is_self_drawn:
+        return 0
+    # 手牌必须是单钓（只有 2 张相同的牌）
+    if len(tiles) != 2 or tiles[0] != tiles[1]:
+        return 0
+    return 6
+
+
+# ═══════════════════════════════════════════════════════
 # ── 计算入口 ───────────────────────────────────────
 # ═══════════════════════════════════════════════════════
 
