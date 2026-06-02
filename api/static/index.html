@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="theme-color" content="#0a1a10">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>麻将决策 · 国标助手</title>
+<style>
+/* ── Variables ── */
+:root{
+  --gold:#d4af37;--gold-dim:#c9a84c;--gold-pale:#e8d48b;
+  --felt:#0d2818;--felt-dark:#0a1a10;--felt-light:#1a4a2e;
+  --text:#e8e0d4;--text-dim:#8b7d5e;--text-muted:#6b5d4e;
+  --orange:#e8860c;--red:#c62828;--blue:#1a73e8;--green:#2e8b57;
+  --radius:12px;--radius-sm:8px;
+  --spring: cubic-bezier(.34,1.56,.64,1);--ease-out: cubic-bezier(.22,1,.36,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:16px}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Inter','Helvetica Neue',Arial,sans-serif;
+  background:var(--felt-dark);color:var(--text);
+  min-height:100dvh;overflow-x:hidden;
+  -webkit-tap-highlight-color:transparent;
+}
+
+/* ── Header ── */
+.header{
+  background:linear-gradient(180deg,#0a1a10 0%,var(--felt) 100%);
+  border-bottom:1px solid rgba(212,175,55,0.12);
+  padding:14px 16px;text-align:center;position:sticky;top:0;z-index:100;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+}
+.header h1{
+  font-size:1.1rem;font-weight:800;
+  color:var(--gold-pale);letter-spacing:3px;
+  text-shadow:0 2px 12px rgba(0,0,0,0.6);
+}
+.header .sub{font-size:.6rem;color:var(--text-muted);margin-top:2px;letter-spacing:1px}
+
+/* ── Container ── */
+.container{max-width:480px;margin:0 auto;padding:10px}
+.felt{
+  background:radial-gradient(ellipse at 50% 0%,#1a4a2e 0%,var(--felt) 100%);
+  border-radius:20px;border:1px solid rgba(212,175,55,0.1);
+  padding:14px;box-shadow:inset 0 0 60px rgba(0,0,0,0.4),0 4px 30px rgba(0,0,0,0.5);
+  position:relative;
+}
+.felt::before{content:'';position:absolute;inset:-3px;border-radius:22px;background:linear-gradient(135deg,rgba(212,175,55,0.08),transparent 60%,rgba(212,175,55,0.03));pointer-events:none}
+
+/* ── Section Label ── */
+.section-label{
+  font-size:.65rem;font-weight:700;color:var(--text-dim);
+  text-transform:uppercase;letter-spacing:2px;
+  margin:10px 0 6px;display:flex;align-items:center;gap:8px;
+}
+.section-label::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(212,175,55,0.2),transparent)}
+
+/* ── Tile Buttons ── */
+.tile-grid{
+  display:grid;grid-template-columns:repeat(9,1fr);gap:4px;margin-bottom:6px;
+}
+.tile-group-label{
+  font-size:.55rem;color:var(--text-muted);grid-column:1/-1;
+  margin-top:4px;margin-bottom:2px;letter-spacing:1px;
+}
+.tile-btn{
+  aspect-ratio:1;border-radius:6px;border:1px solid rgba(212,175,55,0.12);
+  background:rgba(0,0,0,0.2);color:var(--text-dim);
+  font-size:.75rem;font-weight:700;cursor:pointer;transition:all .15s;
+  display:flex;align-items:center;justify-content:center;
+  user-select:none;-webkit-tap-highlight-color:transparent;
+  min-height:36px;
+}
+.tile-btn:active{transform:scale(.93)}
+.tile-btn.selected{
+  background:rgba(212,175,55,0.2);color:var(--gold-pale);
+  border-color:rgba(212,175,55,0.4);box-shadow:0 0 8px rgba(212,175,55,0.15);
+}
+.tile-btn.multi{position:relative}
+.tile-btn .count-badge{
+  position:absolute;top:-6px;right:-6px;
+  background:var(--gold);color:#000;font-size:.6rem;font-weight:800;
+  width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 6px rgba(0,0,0,0.4);
+}
+
+/* ── Tile Counter ── */
+.tile-counter{
+  display:flex;align-items:center;gap:8px;margin-bottom:10px;
+  padding:8px 12px;background:rgba(0,0,0,0.15);border-radius:8px;
+}
+.tile-counter .count{font-size:1.1rem;font-weight:800;color:var(--gold-pale)}
+.tile-counter .label{font-size:.7rem;color:var(--text-dim);flex:1}
+.tile-counter .action-btn{
+  background:rgba(212,175,55,0.1);border:1px solid rgba(212,175,55,0.15);
+  color:var(--gold-pale);padding:6px 14px;border-radius:6px;
+  font-size:.7rem;font-weight:700;cursor:pointer;transition:all .15s;
+}
+.tile-counter .action-btn:active{background:rgba(212,175,55,0.2)}
+
+/* ── Result Area ── */
+.result-area{margin-top:10px;display:none}
+.result-area.show{display:block}
+.result-card{
+  background:rgba(0,0,0,0.2);border-radius:10px;
+  padding:10px 12px;margin-bottom:6px;border:1px solid rgba(212,175,55,0.08);
+}
+.result-label{font-size:.6rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
+.result-value{font-size:.95rem;font-weight:700}
+.result-value.gold{color:var(--gold-pale)}
+.result-value.green{color:var(--green)}
+.result-value.orange{color:var(--orange)}
+.result-value.red{color:var(--red)}
+
+/* ── Listen Table ── */
+.listen-table{width:100%;border-collapse:collapse;margin-top:6px}
+.listen-table th{
+  font-size:.6rem;color:var(--text-dim);text-transform:uppercase;letter-spacing:1px;
+  padding:4px 6px;text-align:left;border-bottom:1px solid rgba(212,175,55,0.1);
+}
+.listen-table td{
+  font-size:.8rem;padding:5px 6px;border-bottom:1px solid rgba(212,175,55,0.05);
+}
+.listen-table .tile-name{font-weight:700;color:var(--gold-pale)}
+.listen-table .remaining{color:var(--text)}
+.listen-table .fan{color:var(--orange);font-weight:700}
+.listen-table .score{color:var(--green);font-weight:700}
+.listen-table tr:first-child td{font-size:.85rem}
+.listen-table tr:first-child .tile-name{color:var(--gold);font-size:.9rem}
+
+/* ── Acceptance ── */
+.acceptance-chips{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+.acceptance-chip{
+  padding:3px 8px;border-radius:12px;
+  background:rgba(212,175,55,0.08);border:1px solid rgba(212,175,55,0.12);
+  font-size:.7rem;color:var(--text);
+}
+
+/* ── Loading ── */
+.loading{text-align:center;padding:20px;color:var(--text-muted);font-size:.8rem}
+
+/* ── Error ── */
+.error-bar{
+  background:rgba(198,40,40,0.12);border:1px solid rgba(198,40,40,0.2);
+  color:var(--red);padding:8px 12px;border-radius:8px;font-size:.75rem;margin-top:8px;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🀄 国标麻将</h1>
+  <div class="sub">决策助手 · 通行规则 8番起胡</div>
+</div>
+
+<div class="container">
+<div class="felt" id="app">
+
+  <!-- Tile Counter -->
+  <div class="tile-counter">
+    <span class="count" id="tileCount">0</span>
+    <span class="label">张手牌</span>
+    <button class="action-btn" onclick="clearHand()">清空</button>
+  </div>
+
+  <!-- Tile Selection Grid -->
+  <div id="tileGrid"></div>
+
+  <!-- Analyze Button -->
+  <div style="margin-top:10px">
+    <button onclick="analyze()" style="
+      width:100%;padding:12px;border-radius:10px;border:none;
+      background:linear-gradient(135deg,rgba(212,175,55,0.2),rgba(212,175,55,0.1));
+      color:var(--gold-pale);font-size:1rem;font-weight:800;
+      cursor:pointer;transition:all .15s;letter-spacing:2px;
+    ">分析手牌</button>
+  </div>
+
+  <!-- Result Area -->
+  <div class="result-area" id="resultArea">
+    <div class="section-label">分析结果</div>
+    <div id="resultContent"></div>
+  </div>
+
+</div>
+</div>
+
+<script>
+// ── Tile Data ──
+const suits = [
+  { id: 0, name: '万', color: '#e8d48b', tiles: [1,2,3,4,5,6,7,8,9] },
+  { id: 1, name: '条', color: '#2e8b57', tiles: [1,2,3,4,5,6,7,8,9] },
+  { id: 2, name: '饼', color: '#1a73e8', tiles: [1,2,3,4,5,6,7,8,9] },
+  { id: 3, name: '风', color: '#c9a84c', tiles: [1,2,3,4] },
+  { id: 4, name: '箭', color: '#c62828', tiles: [1,2,3] },
+];
+
+const ALL_TILES = [];
+for (let s = 0; s < suits.length; s++) {
+  for (let r of suits[s].tiles) {
+    ALL_TILES.push({ code: s * 28 + (r - 1) * 4, suit: s, rank: r, name: suits[s].name });
+  }
+}
+
+// Hand state: { code -> count }
+let hand = {};
+
+function tileName(code) {
+  const t = ALL_TILES.find(x => x.code === code);
+  if (!t) return '?';
+  const rankNames = ['一','二','三','四','五','六','七','八','九','东','南','西','北','中','发','白'];
+  if (t.suit <= 2) return rankNames[t.rank-1] + t.name;
+  if (t.suit === 3) return ['东','南','西','北'][t.rank-1];
+  return ['中','发','白'][t.rank-1];
+}
+
+// ── Render Grid ──
+function renderGrid() {
+  let html = '';
+  for (let s = 0; s < suits.length; s++) {
+    const suit = suits[s];
+    let gridClass = suit.tiles.length === 9 ? 'tile-grid' : 
+                    suit.tiles.length === 4 ? 'tile-grid' : 'tile-grid';
+    html += `<div class="tile-group-label">${suit.name}</div>`;
+    html += `<div class="${gridClass}">`;
+    for (let r of suit.tiles) {
+      const code = s * 28 + (r - 1) * 4;
+      const count = hand[code] || 0;
+      const selected = count > 0;
+      html += `<div class="tile-btn${selected?' selected':''}${count>1?' multi':''}" 
+                     onclick="addTile(${code})"
+                     data-code="${code}">`;
+      const names = ['一','二','三','四','五','六','七','八','九','东','南','西','北','中','发','白'];
+      const label = s <= 2 ? names[r-1] : 
+                    s === 3 ? ['东','南','西','北'][r-1] :
+                    ['中','发','白'][r-1];
+      html += label;
+      if (count > 1) html += `<span class="count-badge">${count}</span>`;
+      html += `</div>`;
+    }
+    html += `</div>`;
+  }
+  document.getElementById('tileGrid').innerHTML = html;
+  document.getElementById('tileCount').textContent = totalTiles();
+}
+
+function totalTiles() {
+  return Object.values(hand).reduce((a, b) => a + b, 0);
+}
+
+function addTile(code) {
+  const maxPerTile = code < 3*28 ? 4 : (code < 4*28 ? 3 : 3);
+  // 风牌: 3张/种, 箭牌: 4张/种? No, all suits have 4 copies except wind (3 per type in guobiao)
+  // Actually let me just cap at 4 for all
+  const cap = 4;
+  if ((hand[code] || 0) >= cap) return;
+  
+  // If we already have 14+ tiles, don't add more
+  if (totalTiles() >= 14) return;
+  
+  hand[code] = (hand[code] || 0) + 1;
+  renderGrid();
+}
+
+function clearHand() {
+  hand = {};
+  renderGrid();
+  document.getElementById('resultArea').classList.remove('show');
+}
+
+// ── Analyze ──
+async function analyze() {
+  const n = totalTiles();
+  // Generate tile list from hand
+  let tiles = [];
+  for (const [code, count] of Object.entries(hand)) {
+    for (let i = 0; i < count; i++) tiles.push(parseInt(code));
+  }
+  tiles.sort((a, b) => a - b);
+
+  if (tiles.length < 13) {
+    document.getElementById('resultArea').classList.add('show');
+    document.getElementById('resultContent').innerHTML = `<div class="error-bar">至少需要 13 张牌才能分析</div>`;
+    return;
+  }
+
+  const resultDiv = document.getElementById('resultContent');
+  resultDiv.innerHTML = `<div class="loading">分析中... 🀄</div>`;
+  document.getElementById('resultArea').classList.add('show');
+
+  try {
+    const resp = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hand: tiles.slice(0, 14) }),
+    });
+    const data = await resp.json();
+
+    if (!resp.ok) {
+      resultDiv.innerHTML = `<div class="error-bar">${data.detail || '分析失败'}</div>`;
+      return;
+    }
+
+    let html = '';
+
+    // Shanten
+    html += `<div class="result-card">
+      <div class="result-label">向听数</div>
+      <div class="result-value ${data.shanten.min === 0 ? 'gold' : data.shanten.min <= 1 ? 'green' : 'orange'}">
+        ${data.shanten.min === 0 ? '🎯 听牌！' : `⬆ ${data.shanten.min} 上听`}
+        <span style="font-size:.7rem;color:var(--text-dim);font-weight:400"> · ${data.shanten.face_str}</span>
+      </div>`;
+
+    // Acceptance
+    if (data.shanten.acceptance_count > 0) {
+      html += `<div class="result-label" style="margin-top:6px">进张 ${data.shanten.acceptance_count} 张</div>
+        <div class="acceptance-chips">`;
+      for (const t of data.shanten.acceptance) {
+        html += `<span class="acceptance-chip">${tileName(t.code)}</span>`;
+      }
+      html += `</div>`;
+    }
+    html += `</div>`;
+
+    // Listen options
+    if (data.listen && data.listen.length > 0) {
+      const best = data.listen[0];
+      html += `<div class="result-card">
+        <div class="result-label">🏆 最佳听牌</div>
+        <div class="result-value gold" style="font-size:1.1rem">
+          ${tileName(best.tile.code)} · ${best.fan}番 · 剩${best.remaining}张
+        </div>
+      </div>`;
+
+      html += `<div class="result-card">
+        <table class="listen-table">
+          <tr><th>牌</th><th>剩余</th><th>番</th><th>评分</th></tr>`;
+      for (const opt of data.listen) {
+        const isBest = opt === data.listen[0];
+        html += `<tr${isBest?' style="background:rgba(212,175,55,0.04)"':''}>
+          <td class="tile-name">${tileName(opt.tile.code)}</td>
+          <td class="remaining">×${opt.remaining}</td>
+          <td class="fan">${opt.fan}番</td>
+          <td class="score">${opt.score.toFixed(1)}</td>
+        </tr>`;
+      }
+      html += `</table></div>`;
+
+      // Show top fan items
+      if (best.fan_items && best.fan_items.length > 0) {
+        html += `<div class="result-card">
+          <div class="result-label">番种明细</div>`;
+        for (const item of best.fan_items.slice(0, 8)) {
+          html += `<div style="font-size:.75rem;padding:2px 0">
+            <span style="color:var(--text-dim)">${item.name}</span>
+            <span style="color:var(--orange);float:right">${item.fan}番</span>
+          </div>`;
+        }
+        html += `</div>`;
+      }
+    }
+
+    // Discard advice for 14+ tiles
+    if (data.discard_advice && data.discard_advice.length > 0) {
+      html += `<div class="result-card">
+        <div class="result-label">出牌建议</div>`;
+      for (const da of data.discard_advice.slice(0, 3)) {
+        const tileCode = da.discard;
+        html += `<div style="font-size:.8rem;padding:4px 0;display:flex;justify-content:space-between;border-bottom:1px solid rgba(212,175,55,0.05)">
+          <span style="color:var(--gold-pale);font-weight:700">▶ 打 ${tileName(tileCode)}</span>
+          <span>⬇${da.shanten_after}上听 · 进张${da.acceptance_count}</span>
+        </div>`;
+      }
+      html += `</div>`;
+    }
+
+    resultDiv.innerHTML = html;
+
+  } catch(e) {
+    resultDiv.innerHTML = `<div class="error-bar">请求失败: ${e.message}</div>`;
+  }
+}
+
+// ── Init ──
+renderGrid();
+</script>
+
+</body>
+</html>
