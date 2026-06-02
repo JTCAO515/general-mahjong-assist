@@ -318,28 +318,89 @@ def is_composite_dragon(tiles: List[int], melds: Optional[List[List[int]]] = Non
 
 
 def is_all_sequences_no_pairs(tiles: List[int], melds: Optional[List[List[int]]] = None) -> bool:
-    """全不靠（每种花色间格 2+，风箭不重复）
+    """全不靠：14 张无重复无副露，数牌全部来自 147/258/369 合集，至少 5 种不同字牌"""
+    if melds:
+        return False
+    if len(tiles) != 14:
+        return False
 
-    严格定义：手牌中没有重复牌，所有数牌相隔至少 2 个点数
-    """
-    # TODO: Phase 2 完整实现
-    return False
+    counts = Counter(tiles)
+    # 所有牌必须不重复
+    if any(c != 1 for c in counts.values()):
+        return False
+
+    # 字牌：必须来自东南西北中发白，至少 5 种不同
+    honor_codes = [t for t in tiles if decode(t)[0] in (FENG, JIAN)]
+    honor_ranks = set()
+    for t in honor_codes:
+        s, r = decode(t)
+        honor_ranks.add((s, r))
+    if len(honor_ranks) < 5:
+        return False
+
+    # 数牌必须全部来自 {1,4,7,2,5,8,3,6,9}
+    pattern_set = {1, 4, 7, 2, 5, 8, 3, 6, 9}
+    for t in tiles:
+        s, r = decode(t)
+        if s in (WAN, TIAO, BING):
+            if r not in pattern_set:
+                return False
+
+    return True
 
 
 # ── 七星不靠检测 ─────────────────────────────────────
 
 def is_seven_stars(tiles: List[int], melds: Optional[List[List[int]]] = None) -> bool:
-    """七星不靠：全不靠 + 7 种字牌各 1 张"""
-    # TODO: Phase 2 完整实现
-    return False
+    """七星不靠：全不靠 + 7 种字牌各 1 张（东南西北中发白全部出现）"""
+    if not is_all_sequences_no_pairs(tiles, melds):
+        return False
+
+    honor_codes = [t for t in tiles if decode(t)[0] in (FENG, JIAN)]
+    honor_ranks = set()
+    for t in honor_codes:
+        s, r = decode(t)
+        honor_ranks.add((s, r))
+
+    # 必须 7 种字牌各 1 张：东南西北(4) + 中发白(3) = 7
+    return len(honor_ranks) == 7
 
 
 # ── 一色双龙会检测 ───────────────────────────────────
 
 def is_double_dragon_one_suit(tiles: List[int], melds: Optional[List[List[int]]] = None) -> bool:
-    """一色双龙会：同花色两个 123/789 + 5 做将"""
-    # TODO: Phase 2 完整实现
-    return False
+    """一色双龙会：同花色 123 123 789 789 + 5 做将"""
+    if melds:
+        return False
+    if len(tiles) != 14:
+        return False
+
+    counts = Counter(tiles)
+    # 单花色检查
+    suits_used = set()
+    for code in counts:
+        s, r = decode(code)
+        if s in (FENG, JIAN):
+            return False  # 不能有字牌
+        suits_used.add(s)
+    number_suits = suits_used - {FENG, JIAN}
+    if len(number_suits) != 1:
+        return False  # 必须单花色
+
+    suit = list(number_suits)[0]
+    # 需要：1×2, 2×2, 3×2, 5×2, 7×2, 8×2, 9×2
+    expected = {1: 2, 2: 2, 3: 2, 5: 2, 7: 2, 8: 2, 9: 2}
+    rank_counts = {}
+    for code in counts:
+        _, r = decode(code)
+        rank_counts[r] = rank_counts.get(r, 0) + counts[code]
+    for r, cnt in expected.items():
+        if rank_counts.get(r, 0) != cnt:
+            return False
+    # 不能有其他牌
+    if len(rank_counts) != 7:
+        return False
+    return True
 
 
 # ── 统一胡牌检测入口 ─────────────────────────────────

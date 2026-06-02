@@ -23,7 +23,8 @@ from core.tile import (
 from core.hand_parser import Hand, tiles_to_rank_array, suit_rank_counts
 from core.win_checker import (
     is_standard_win, is_seven_pairs, is_thirteen_orphans,
-    is_composite_dragon, THIRTEEN_ORPHANS,
+    is_composite_dragon, is_all_sequences_no_pairs, is_seven_stars,
+    THIRTEEN_ORPHANS,
 )
 
 
@@ -312,6 +313,25 @@ def _check_little_three_dragons(ctx: FanContext) -> int:
     return 64 if dragon_triplets == 2 and dragon_pair else 0
 
 
+@register_fan(64, "四暗刻")
+def _check_four_hidden_triplets(ctx: FanContext) -> int:
+    """4 个暗刻（门清条件下 4 组刻子/杠子）"""
+    if not _is_concealed(ctx):
+        return 0
+    counts, melds = _split_hand(ctx)
+    # 手牌必须是 4 组刻子 + 1 将
+    triplets = 0
+    pair_found = False
+    for code, cnt in counts.items():
+        if cnt >= 3:
+            triplets += 1
+        elif cnt == 2:
+            pair_found = True
+        elif cnt != 0:
+            return 0  # 有单张或不成组的牌
+    return 64 if triplets == 4 and pair_found else 0
+
+
 # ═══════════════════════════════════════════════════════
 # 48 番
 # ═══════════════════════════════════════════════════════
@@ -329,15 +349,44 @@ def _check_identical_sequences(ctx: FanContext, count: int) -> int:
     return 0
 
 
+@register_fan(48, "一色四同顺")
+def _check_one_suit_quad_sequence(ctx: FanContext) -> int:
+    """同花色 4 组相同顺子"""
+    if not _is_concealed(ctx):
+        return 0
+    counts, melds = _split_hand(ctx)
+    for suit in [WAN, TIAO, BING]:
+        rank_arr = tiles_to_rank_array(counts, suit)
+        for i in range(7):
+            if rank_arr[i] >= 4 and rank_arr[i+1] >= 4 and rank_arr[i+2] >= 4:
+                return 48
+    return 0
+
+
+@register_fan(48, "一色四节高")
+def _check_one_suit_four_steps(ctx: FanContext) -> int:
+    """同花色 4 组连续递增的刻子"""
+    if not _is_concealed(ctx):
+        return 0
+    counts, melds = _split_hand(ctx)
+    for suit in [WAN, TIAO, BING]:
+        rank_arr = tiles_to_rank_array(counts, suit)
+        for i in range(6):
+            if all(rank_arr[i+j] >= 3 for j in range(4)):
+                return 48
+    return 0
+
+
 # ═══════════════════════════════════════════════════════
 # 32 番
 # ═══════════════════════════════════════════════════════
 
 @register_fan(32, "七星不靠")
 def _check_seven_stars(ctx: FanContext) -> int:
-    """7 种字牌各 1 + 数牌间格 2+"""
-    # TODO: Phase 2 完整实现
-    return 0
+    """7 种字牌各 1 + 数牌全部来自 147/258/369"""
+    if not _is_concealed(ctx):
+        return 0
+    return 32 if is_seven_stars(ctx.hand.tiles, ctx.hand.melds) else 0
 
 
 # ═══════════════════════════════════════════════════════
@@ -388,9 +437,10 @@ def _check_green_dragon(ctx: FanContext) -> int:
 
 @register_fan(12, "全不靠")
 def _check_all_unrelated(ctx: FanContext) -> int:
-    """全不靠：3 种花色各 1-4-7, 2-5-8, 3-6-9 + 7 张字牌"""
-    # TODO: Phase 2
-    return 0
+    """全不靠：3 种花色各从 147/258/369 取数牌 + 5+ 种不同字牌"""
+    if not _is_concealed(ctx):
+        return 0
+    return 12 if is_all_sequences_no_pairs(ctx.hand.tiles, ctx.hand.melds) else 0
 
 
 @register_fan(12, "大于五")
@@ -1045,6 +1095,107 @@ def _check_single_wait(ctx: FanContext) -> int:
 
 
 # ═══════════════════════════════════════════════════════
+# 8 番（续）
+# ═══════════════════════════════════════════════════════
+
+@register_fan(8, "杠上炮")
+def _check_kong_discard_win(ctx: FanContext) -> int:
+    """杠后点炮胡"""
+    return 8 if not ctx.is_self_drawn and ctx.is_kong_draw else 0
+
+
+# ═══════════════════════════════════════════════════════
+# 6 番（续）
+# ═══════════════════════════════════════════════════════
+
+@register_fan(6, "双暗杠")
+def _check_double_hidden_kong(ctx: FanContext) -> int:
+    """2 个暗杠"""
+    hidden_kongs = 0
+    for m in ctx.hand.melds:
+        if len(m) == 4:
+            hidden_kongs += 1
+    return 6 if hidden_kongs >= 2 else 0
+
+
+# ═══════════════════════════════════════════════════════
+# 4 番（续）
+# ═══════════════════════════════════════════════════════
+
+@register_fan(4, "双明杠")
+def _check_double_exposed_kong(ctx: FanContext) -> int:
+    """2 个明杠"""
+    exposed_kongs = sum(1 for m in ctx.hand.melds if len(m) == 4)
+    return 4 if exposed_kongs >= 2 else 0
+
+
+# ═══════════════════════════════════════════════════════
+# 2 番（续）
+# ═══════════════════════════════════════════════════════
+
+@register_fan(2, "圈风刻")
+def _check_round_wind_pung(ctx: FanContext) -> int:
+    """圈风刻：与圈风相同的风牌刻子（兼容 0/1 基索引）"""
+    rw = ctx.round_wind if ctx.round_wind >= 1 else ctx.round_wind + 1
+    if rw < 1 or rw > 4:
+        return 0
+    wind_code = encode(FENG, rw)
+    cnt = ctx.hand.counts.get(wind_code, 0)
+    return 2 if cnt >= 3 else 0
+
+
+@register_fan(2, "门风刻")
+def _check_seat_wind_pung(ctx: FanContext) -> int:
+    """门风刻：与座风相同的风牌刻子（兼容 0/1 基索引）"""
+    sw = ctx.seat_wind if ctx.seat_wind >= 1 else ctx.seat_wind + 1
+    if sw < 1 or sw > 4:
+        return 0
+    wind_code = encode(FENG, sw)
+    cnt = ctx.hand.counts.get(wind_code, 0)
+    return 2 if cnt >= 3 else 0
+
+
+# ═══════════════════════════════════════════════════════
+# 1 番（续）
+# ═══════════════════════════════════════════════════════
+
+@register_fan(1, "边张")
+def _check_edge_wait(ctx: FanContext) -> int:
+    """边张：12 胡 3，或 89 胡 7"""
+    if not ctx.win_on_discard:
+        return 0
+    w_s, w_r = decode(ctx.win_tile)
+    if w_s not in (WAN, TIAO, BING):
+        return 0
+    tiles_no_win = [t for t in ctx.hand.tiles if t != ctx.win_tile]
+    if w_r == 3:
+        cnt_1 = sum(1 for t in tiles_no_win if decode(t)[1] == 1 and decode(t)[0] == w_s)
+        cnt_2 = sum(1 for t in tiles_no_win if decode(t)[1] == 2 and decode(t)[0] == w_s)
+        if cnt_1 >= 1 and cnt_2 >= 1:
+            return 1
+    elif w_r == 7:
+        cnt_8 = sum(1 for t in tiles_no_win if decode(t)[1] == 8 and decode(t)[0] == w_s)
+        cnt_9 = sum(1 for t in tiles_no_win if decode(t)[1] == 9 and decode(t)[0] == w_s)
+        if cnt_8 >= 1 and cnt_9 >= 1:
+            return 1
+    return 0
+
+
+@register_fan(1, "坎张")
+def _check_middle_wait(ctx: FanContext) -> int:
+    """坎张：嵌档，如 24 胡 3"""
+    if not ctx.win_on_discard:
+        return 0
+    w_s, w_r = decode(ctx.win_tile)
+    if w_s not in (WAN, TIAO, BING) or w_r < 2 or w_r > 8:
+        return 0
+    tiles_no_win = [t for t in ctx.hand.tiles if t != ctx.win_tile]
+    has_before = any(decode(t)[0] == w_s and decode(t)[1] == w_r - 1 for t in tiles_no_win)
+    has_after = any(decode(t)[0] == w_s and decode(t)[1] == w_r + 1 for t in tiles_no_win)
+    return 1 if has_before and has_after else 0
+
+
+# ═══════════════════════════════════════════════════════
 # ── 计算入口 ───────────────────────────────────────
 # ═══════════════════════════════════════════════════════
 
@@ -1085,8 +1236,16 @@ def calculate_fan(ctx: FanContext) -> FanResult:
 
 
 def is_any_win_fast(tiles: List[int], melds: Optional[List[List[int]]] = None) -> bool:
-    """快速胡牌检测（只检查标准/七对/十三幺）"""
-    from core.win_checker import is_standard_win, is_seven_pairs, is_thirteen_orphans
+    """快速胡牌检测（检查全部胡牌型）"""
+    from core.win_checker import (
+        is_standard_win, is_seven_pairs, is_thirteen_orphans,
+        is_composite_dragon, is_all_sequences_no_pairs,
+        is_seven_stars, is_double_dragon_one_suit,
+    )
     return (is_standard_win(tiles, melds) or
             is_seven_pairs(tiles, melds) or
-            is_thirteen_orphans(tiles, melds))
+            is_thirteen_orphans(tiles, melds) or
+            is_composite_dragon(tiles, melds) or
+            is_all_sequences_no_pairs(tiles, melds) or
+            is_seven_stars(tiles, melds) or
+            is_double_dragon_one_suit(tiles, melds))
