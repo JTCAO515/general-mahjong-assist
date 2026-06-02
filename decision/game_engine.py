@@ -51,6 +51,7 @@ class DiscardOption:
     acceptance: int
     danger_level: str   # "低" / "中" / "高"
     reason: str = ""
+    mc_ev: float = 0.0
 
     def summary(self) -> str:
         return f"打 {self.name} → {self.post_shanten}上听 · 进张{self.acceptance} · 危险{self.danger_level}"
@@ -564,6 +565,36 @@ def full_analysis(state: GameState, use_monte_carlo: bool = False,
                 state.hand, state.melds, remaining,
                 simulations=mc_simulations, max_draws=mc_draws,
             )
+
+            # 融合 MC 结果 → 出牌建议: (suit, rank) → EV 映射
+            from core.tile import decode
+            mc_by_type: Dict[Tuple[int, int], dict] = {}
+            for r in mc_results:
+                s, rk = decode(r["tile"])
+                mc_by_type[(s, rk)] = r
+
+            # 更新每个 DiscardOption 的 EV + reason
+            from collections import defaultdict
+            rank_mc_hits = defaultdict(list)
+            for opt in discard_options:
+                s, rk = decode(opt.tile)
+                key = (s, rk)
+                if key in mc_by_type:
+                    mc_r = mc_by_type[key]
+                    ev = mc_r["ev"]
+                    opt.mc_ev = ev
+                    wr_pct = mc_r["win_rate"] * 100
+                    opt.reason += f" | MC: 胜率{wr_pct:.1f}% EV={ev:.2f}"
+                    rank_mc_hits[ev].append(opt)
+                else:
+                    opt.mc_ev = -1.0  # 未模拟的排最后
+
+            # 按 EV 降序重排序（EV 相同则保留原有排序）
+            if mc_results:
+                discard_options.sort(key=lambda o: (-o.mc_ev, o.post_shanten,
+                                                     {"低": 0, "中": 1, "高": 2}.get(o.danger_level, 3),
+                                                     -o.acceptance))
+
         except Exception as e:
             mc_results = [{"error": str(e)}]
 

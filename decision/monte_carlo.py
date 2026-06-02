@@ -12,6 +12,8 @@
 """
 
 import random
+from concurrent.futures import ProcessPoolExecutor, as_completed
+import os
 from typing import List, Dict, Tuple, Optional, Set
 from collections import Counter
 
@@ -161,8 +163,9 @@ def evaluate_all_discards(hand: List[int],
                           melds: List[List[int]],
                           remaining: Dict[int, int],
                           simulations: int = 500,
-                          max_draws: int = 10) -> List[dict]:
-    """评估所有可能的出牌
+                          max_draws: int = 10,
+                          workers: int = 0) -> List[dict]:
+    """评估所有可能的出牌（并行加速版）
 
     Args:
         hand: 当前手牌
@@ -170,6 +173,7 @@ def evaluate_all_discards(hand: List[int],
         remaining: 剩余牌池 {编码: 张数}
         simulations: 每张牌模拟局数
         max_draws: 每局最多摸牌
+        workers: 并行进程数，0=自动(CPU核数)
 
     Returns:
         按 EV 降序排列的出牌评估列表
@@ -186,11 +190,37 @@ def evaluate_all_discards(hand: List[int],
         key = (suit, rank)
         if key not in unique_by_type:
             unique_by_type[key] = tile  # 保留第一个编码
-    results = []
 
-    for tile in unique_by_type.values():
-        result = simulate_discard(hand, tile, melds, pool, simulations, max_draws)
-        results.append(result)
+    tiles_to_eval = list(unique_by_type.values())
+    if not tiles_to_eval:
+        return []
+
+    if workers <= 0:
+        workers = min(os.cpu_count() or 4, len(tiles_to_eval))
+
+    # 并行执行
+    if workers > 1 and len(tiles_to_eval) > 1:
+        results = []
+        with ProcessPoolExecutor(max_workers=workers) as executor:
+            future_map = {
+                executor.submit(simulate_discard, hand, tile, melds, pool,
+                                simulations, max_draws): tile
+                for tile in tiles_to_eval
+            }
+            for future in as_completed(future_map):
+                try:
+                    results.append(future.result())
+                except Exception as e:
+                    tile = future_map[future]
+                    results.append({
+                        "tile": tile, "tile_name": tile_name(tile),
+                        "simulations": simulations, "wins": 0,
+                        "win_rate": 0, "avg_fan": 0, "ev": 0,
+                        "error": str(e),
+                    })
+    else:
+        results = [simulate_discard(hand, tile, melds, pool, simulations, max_draws)
+                   for tile in tiles_to_eval]
 
     results.sort(key=lambda x: x["ev"], reverse=True)
     return results

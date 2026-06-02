@@ -179,3 +179,58 @@ bash start-web.sh   # → http://localhost:8778
 | 测试 | **183** |
 | 修改文件 | `main.py` + `index.html` + `monte_carlo.py` |
 | 新增端点参数 | `use_monte_carlo` |
+
+
+## 迭代 006: 番种校准 + 九莲宝灯修复 + MC 融合 + 并行加速
+
+**日期:** 2026-06-03
+**状态:** ✅ 全部四方向完成
+
+### A1 — 番值校准
+
+| 番种 | 原值 | 标准值 | 说明 |
+|------|------|--------|------|
+| 大四喜 | 64番 | **88番** | 四风刻应为最高等级 |
+| 喜相逢 | 4番 | **2番** | 两种花色相同顺子 |
+| 连六 | 1番 | **2番** | 同花色6连张 |
+
+### A2 — 九莲宝灯修复
+
+**问题:** 原检测逻辑有2个bug：
+1. `if rank_arr[i] > target[i]: return 0` — 禁止任何点数多1张，导致14张胡牌型永远判否
+2. `total_extra = sum(... if rank_arr[i] > target[i])` — 由于bug1已return，此线不执行
+
+**修复:** 改为检测 `rank_arr[i] < target[i]` 为基础不足检查，14张时允许恰好1个点数多1张
+
+**新增测试:** `test_nine_gates.py` — 14项 (6正+6反+3花色覆盖)
+
+### B1 — MC 融合入出牌建议
+
+- `DiscardOption` 新增 `mc_ev: float` 字段
+- `full_analysis`: MC 结果回来后，建立 `(suit, rank) → EV` 查找表
+- 每个出牌选项更新 `reason`（含 `| MC: 胜率X.X% EV=X.XX`）
+- **排序切换**: `use_monte_carlo` 启用时主排序键为 `mc_ev` 降序（而非向听数+安全等级）
+- API: `DiscardOptionResp.mc_ev` 透传至前端
+- 前端: 最优出牌卡片显示 `EV X.XX` 标签
+
+### B2 — MC 并行加速
+
+- `evaluate_all_discards` 改用 `ProcessPoolExecutor`
+- 每张出牌独立模拟，并行到全部 CPU 核
+- 退化为 `workers=1` 时保持原有顺序执行
+- 错误隔离：单张模拟失败不阻塞其他牌
+
+### 验证
+- 全量测试: **197/197** ✅ (原183 + 新14)
+- 番种: 75注册但3个番值修正，标准对齐度提升
+- MC 排序: 最优出牌 EV 一致 ✅
+- MC 并行: 多牌场景显著加速
+
+### 统计
+| 指标 | 值 |
+|------|-----|
+| 测试 | **197** |
+| 番值修正 | 大四喜 64→88, 喜相逢 4→2, 连六 1→2 |
+| 新文件 | `tests/test_nine_gates.py` |
+| 修改文件 | `fan_calculator.py`, `game_engine.py`, `monte_carlo.py`, `main.py`, `index.html` |
+| 核心修复 | 九莲宝灯检测逻辑 |

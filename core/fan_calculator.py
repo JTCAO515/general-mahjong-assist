@@ -233,30 +233,35 @@ def _check_four_kongs(ctx: FanContext) -> int:
 
 @register_fan(88, "九莲宝灯")
 def _check_nine_gates(ctx: FanContext) -> int:
-    """同花色 1112345678999 + 同花色任意 1 张"""
+    """九莲宝灯：同花色 1112345678999 + 同花色任意 1 张"""
     counts, melds = _split_hand(ctx)
-    # 九莲必须门清
     if melds:
         return 0
-    # 必须只有 1 个花色
-    suits_used = set()
-    for code in counts:
-        s, _ = decode(code)
-        suits_used.add(s)
+    # 必须纯同一花色，无字牌
+    suits_used = {decode(c)[0] for c in counts}
     number_suits = suits_used - {FENG, JIAN}
     if len(number_suits) != 1 or len(suits_used - number_suits) > 0:
         return 0
 
     suit = list(number_suits)[0]
     rank_arr = tiles_to_rank_array(counts, suit)
-    # 1112345678999 模式：1:3, 9:3, 2-8:1
+    total = sum(rank_arr)
+    if total not in (13, 14):
+        return 0
+
+    # 1-9 张数分布: 1112345678999
     target = [3, 1, 1, 1, 1, 1, 1, 1, 3]
     for i in range(9):
-        if rank_arr[i] > target[i]:
+        if rank_arr[i] < target[i]:
             return 0
-    # 所有牌都要匹配
-    total_extra = sum(rank_arr[i] - target[i] for i in range(9) if rank_arr[i] > target[i])
-    return 88 if total_extra == 0 else 0
+
+    # 14 张时有且仅有一个点数多 1 张
+    if total == 14:
+        extra_cnt = sum(1 for i in range(9) if rank_arr[i] > target[i])
+        if extra_cnt != 1:
+            return 0
+
+    return 88
 
 
 @register_fan(88, "十三幺")
@@ -786,7 +791,7 @@ def _count_triplets_family(counts: Dict[int, int], suit: int) -> List[int]:
     return [i + 1 for i, c in enumerate(rank_arr) if c >= 3]
 
 
-@register_fan(64, "大四喜")
+@register_fan(88, "大四喜")
 def _check_great_four_winds(ctx: FanContext) -> int:
     """东南西北各一刻（或杠）"""
     counts, melds = _split_hand(ctx)
@@ -1082,7 +1087,7 @@ def _check_self_drawn_concealed(ctx: FanContext) -> int:
     return 4 if _is_concealed(ctx) and ctx.is_self_drawn else 0
 
 
-@register_fan(4, "喜相逢")
+@register_fan(2, "喜相逢")
 def _check_identical_sequence_two_suits(ctx: FanContext) -> int:
     """两种花色相同顺子（如 123万 123条）"""
     if not _is_concealed(ctx):
@@ -1115,7 +1120,7 @@ def _check_two_suit_same_pung(ctx: FanContext) -> int:
     return 0
 
 
-@register_fan(1, "连六")
+@register_fan(2, "连六")
 def _check_six_consecutive(ctx: FanContext) -> int:
     """同花色 6 张连续点数（如 1-6 或 4-9）"""
     counts, melds = _split_hand(ctx)

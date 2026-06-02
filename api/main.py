@@ -106,6 +106,7 @@ class DiscardOptionResp(BaseModel):
     acceptance: int
     danger_level: str
     reason: str
+    mc_ev: float = 0.0
 
 
 class ActionOptionResp(BaseModel):
@@ -259,6 +260,7 @@ def _discard_option_to_resp(opt: DiscardOption) -> DiscardOptionResp:
         acceptance=opt.acceptance,
         danger_level=opt.danger_level,
         reason=opt.reason,
+        mc_ev=opt.mc_ev,
     )
 
 

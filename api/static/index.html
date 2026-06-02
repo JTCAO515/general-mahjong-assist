@@ -600,11 +600,12 @@ async function analyze(){
     if(bestDisc){
       const dc={low:'🟢',mid:'🟡',high:'🔴'}[bestDisc.danger_level]||'⚪';
       const st=bestDisc.post_shanten===0?'听牌':bestDisc.post_shanten+'上听';
+      const mcBadge=bestDisc.mc_ev>0?` <span style="font-size:.5rem;color:var(--teal);font-weight:700">EV ${bestDisc.mc_ev.toFixed(2)}</span>`:'';
       h+=`<div style="text-align:center;font-size:.55rem;font-weight:700;color:var(--gold);letter-spacing:2px;margin:4px 0 2px">━━  👉 最优打法  👈  ━━</div>`;
       const rColor=bestDisc.danger_level==='低'?'var(--green)':bestDisc.danger_level==='中'?'var(--orange)':'var(--red)';
       h+=`<div class="hero disc" style="border-width:2px;border-color:rgba(232,197,74,0.25);padding:10px 12px" onclick="rmOne(${bestDisc.tile.code});renderAll();document.getElementById('resultArea').classList.remove('show')">
         <div class="ic" style="width:42px;height:52px;font-size:1.1rem">${dc}</div>
-        <div class="t" style="font-size:1rem">打 ${tn(bestDisc.tile.code)}<div class="s" style="font-size:.6rem">${bestDisc.reason} · 进张${bestDisc.acceptance}</div></div>
+        <div class="t" style="font-size:1rem">打 ${tn(bestDisc.tile.code)}${mcBadge}<div class="s" style="font-size:.6rem">${bestDisc.reason} · 进张${bestDisc.acceptance}</div></div>
         <div class="r" style="font-size:.8rem;color:${rColor}">${st}<div class="s" style="font-size:.55rem">${bestDisc.acceptance}进</div></div></div>`;
     }
 
