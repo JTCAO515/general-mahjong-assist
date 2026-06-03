@@ -17,7 +17,7 @@ from collections import Counter
 from core.tile import (
     encode, decode, tile_name,
     WAN, TIAO, BING, FENG, JIAN,
-    TOTAL_TILES, remaining_pool,
+    TOTAL_TILES, remaining_pool, classify_tile_type,
 )
 from core.shanten import calculate_shanten, discard_analysis as core_discard_analysis
 from core.fan_calculator import FanContext, calculate_fan
@@ -77,11 +77,35 @@ class ActionOption:
 
 
 @dataclass
+class OpponentSafety:
+    """每家对手对某张牌的安全度"""
+    seat: int           # 对手座位 1/2/3
+    safety: int         # 0-100
+    level: str          # "极危" / "高危" / "中危" / "警惕" / "安全" / "绝对安全"
+    reason: str         # 原因描述
+
+
+@dataclass
+class TileSafety:
+    """某张牌的安全度全貌"""
+    tile: int
+    name: str
+    tile_type: str                 # "字牌" / "幺九" / "中张"
+    per_opponent: List[OpponentSafety]  # 3 家对手
+    overall_safety: int            # min of all opponents
+    overall_level: str
+    overall_reason: str
+
+
+@dataclass
 class DefenseInfo:
     """防守信息"""
-    dangerous_tiles: List[Dict] = field(default_factory=list)  # 危险牌列表
-    safe_tiles: List[Dict] = field(default_factory=list)       # 安全牌列表
+    dangerous_tiles: List[Dict] = field(default_factory=list)  # 危险牌列表（旧格式，向后兼容）
+    safe_tiles: List[Dict] = field(default_factory=list)       # 安全牌列表（旧格式）
     summary: str = ""
+    safety_matrix: Dict[int, TileSafety] = field(default_factory=dict)  # {编码: TileSafety}
+    top_danger: List[TileSafety] = field(default_factory=list)  # 最危险牌（按安全度升序）
+    top_safe: List[TileSafety] = field(default_factory=list)    # 最安全牌（按安全度降序）
 
 
 @dataclass
@@ -125,76 +149,232 @@ def build_remaining(hand: List[int],
 
 # ── 防守分析 ──────────────────────────────────────────
 
-def analyze_defense(discards: Dict[int, List[int]],
-                    remaining: Dict[int, int]) -> DefenseInfo:
-    """防守分析：基于舍牌判断危险牌和安全牌
-    
-    基本原则：
-    - 生牌（一张没出过的牌）= 危险（可能被荣和）
-    - 已经出过2+张的牌 = 安全
-    - 字牌没出过 = 相对安全（除非字一色/碰碰和方向）
-    - 只出过1张的 = 中等
+def _safety_score(tile_type: str, total_discarded: int) -> int:
+    """基于牌类型和全桌出张数计算安全度基线
+
+    Args:
+        tile_type: "字牌" / "幺九" / "中张"
+        total_discarded: 全桌共出了多少张
+
+    Returns:
+        0-100 安全度分数
     """
-    dangerous = []
-    safe = []
-    
-    # 统计所有舍牌的出现次数
-    discard_counts: Dict[int, int] = {}
+    if tile_type == "字牌":
+        if total_discarded >= 2:
+            return 95
+        elif total_discarded == 1:
+            return 70
+        return 40
+    elif tile_type == "幺九":
+        if total_discarded >= 2:
+            return 80
+        elif total_discarded == 1:
+            return 50
+        return 15
+    else:  # 中张
+        if total_discarded >= 2:
+            return 75
+        elif total_discarded == 1:
+            return 35
+        return 5
+
+
+def _safety_level(score: int) -> str:
+    """安全度分数 → 等级"""
+    if score >= 96:
+        return "绝对安全"
+    elif score >= 81:
+        return "安全"
+    elif score >= 61:
+        return "警惕"
+    elif score >= 41:
+        return "中危"
+    elif score >= 21:
+        return "高危"
+    return "极危"
+
+
+def _per_opponent_adjust(base_score: int, tile_code: int,
+                          opponent_seat: int,
+                          discards: Dict[int, List[int]],
+                          opponent_melds: Dict[int, List[List[int]]]) -> int:
+    """对某家对手的安全度调整
+
+    Args:
+        base_score: 基线安全度
+        tile_code: 待评估的牌
+        opponent_seat: 对手座位 (1/2/3)
+        discards: 各家舍牌
+        opponent_melds: 各家副露
+
+    Returns:
+        调整后的安全度（clamp 0-100）
+    """
+    score = base_score
+    suit, rank = decode(tile_code)
+    opp_discards = discards.get(opponent_seat, [])
+    opp_melds = opponent_melds.get(opponent_seat, [])
+
+    # 这家对手自己出过这张牌？→ 跟打加分
+    # 仅在这个对手出过 ≤1 张时才加分（出过2+张说明肯定不要了）
+    opp_count = opp_discards.count(tile_code)
+    if opp_count == 1 and opp_discards[-1] == tile_code:
+        score += 20
+
+    # 检查对手副露
+    word_meld_count = 0
+    for meld in opp_melds:
+        if not meld:
+            continue
+        m_suit, _ = decode(meld[0])
+        # 同花色刻子/杠 → 可能在做清一色/混一色
+        if m_suit == suit and suit in (WAN, TIAO, BING):
+            if len(meld) >= 3:  # 刻子或杠
+                score -= 20
+                break
+        # 字牌副露计数
+        if m_suit in (FENG, JIAN):
+            word_meld_count += 1
+
+    # 对手有2+个字牌副露 → 可能在做字一色/碰碰和方向
+    if word_meld_count >= 2 and suit in (FENG, JIAN):
+        score -= 30
+
+    # 对手大量出同花色中张（≥3张）→ 可能在做清一色
+    suit_count = sum(1 for t in opp_discards if decode(t)[0] == suit)
+    if suit_count >= 3 and suit in (WAN, TIAO, BING):
+        score -= 10
+
+    return max(0, min(100, score))
+
+
+def analyze_defense(discards: Dict[int, List[int]],
+                    opponent_melds: Dict[int, List[List[int]]],
+                    remaining: Dict[int, int]) -> DefenseInfo:
+    """防守分析：安全度矩阵（每张牌 × 每家对手）
+
+    Args:
+        discards: {座位: [出牌编码]}
+        opponent_melds: {座位: [[副露1], ...]}
+        remaining: {编码: 剩余张数}
+
+    Returns:
+        DefenseInfo 包含 safety_matrix / top_danger / top_safe
+    """
+    # 全桌舍牌统计
+    global_discard_counts: Dict[int, int] = {}
     for seat, tiles in discards.items():
         for t in tiles:
-            discard_counts[t] = discard_counts.get(t, 0) + 1
+            global_discard_counts[t] = global_discard_counts.get(t, 0) + 1
+
+    safety_matrix: Dict[int, TileSafety] = {}
+    dangerous_old = []
+    safe_old = []
 
     # 逐张分析
     for code in range(TOTAL_TILES):
-        if remaining.get(code, 0) == 0:
-            continue  # 没剩了
-        
-        total_discarded = discard_counts.get(code, 0)
-        suit, rank = decode(code)
-        
-        if total_discarded >= 2:
-            safe.append({
-                "tile": code,
-                "name": tile_name(code),
-                "reason": f"已出{total_discarded}张",
-                "level": "低",
-            })
-        elif total_discarded == 1:
-            safe.append({
-                "tile": code,
-                "name": tile_name(code),
-                "reason": f"已出1张",
-                "level": "中",
-            })
-        elif total_discarded == 0 and suit in (FENG, JIAN):
-            # 字牌没出过，不算太危险（可以跟打）
-            dangerous.append({
-                "tile": code,
-                "name": tile_name(code),
-                "reason": "生牌(字)",
-                "level": "中",
-            })
+        avail = remaining.get(code, 0)
+        if avail == 0:
+            continue
+
+        name = tile_name(code)
+        tile_type = classify_tile_type(code)
+        global_discarded = global_discard_counts.get(code, 0)
+
+        # 计算各家对手安全度
+        per_opponent: List[OpponentSafety] = []
+        for seat in (1, 2, 3):
+            # 每家对手的"自己出过"次数
+            opp_count = discards.get(seat, []).count(code)
+            base = _safety_score(tile_type, opp_count)  # 用自家出牌次数
+            adjusted = _per_opponent_adjust(base, code, seat, discards, opponent_melds)
+            level = _safety_level(adjusted)
+
+            reasons = []
+            if opp_count == 0:
+                if tile_type == "字牌":
+                    reasons.append("未出(字牌)")
+                else:
+                    reasons.append("生牌")
+            elif opp_count == 1:
+                reasons.append("已出1张")
+
+            # 检查调整原因
+            if adjusted < base:
+                reasons.append(f"对手有同色副露")
+            elif adjusted > base:
+                reasons.append("跟打")
+
+            per_opponent.append(OpponentSafety(
+                seat=seat,
+                safety=adjusted,
+                level=level,
+                reason="，".join(reasons) if reasons else "安全",
+            ))
+
+        # 整体安全度 = 取最危险的那家
+        overall_safety = min(os.safety for os in per_opponent)
+        overall_level = _safety_level(overall_safety)
+        worst_opp = [os for os in per_opponent if os.safety == overall_safety][0]
+        overall_reason = f"对对手{worst_opp.seat}{worst_opp.reason}"
+
+        tile_safety = TileSafety(
+            tile=code,
+            name=name,
+            tile_type=tile_type,
+            per_opponent=per_opponent,
+            overall_safety=overall_safety,
+            overall_level=overall_level,
+            overall_reason=overall_reason,
+        )
+        safety_matrix[code] = tile_safety
+
+        # 向后兼容：旧格式 dangerous_tiles / safe_tiles
+        entry = {
+            "tile": code,
+            "name": name,
+            "reason": f"{overall_level} · {overall_reason}",
+            "level": overall_level,
+        }
+        if overall_safety >= 61:
+            safe_old.append(entry)
         else:
-            dangerous.append({
-                "tile": code,
-                "name": tile_name(code),
-                "reason": "生牌",
-                "level": "高",
-            })
+            dangerous_old.append(entry)
 
-    # 排序：危险牌按"高→中"（非危险反过来）
-    dangerous.sort(key=lambda x: (0 if x["level"] == "高" else 1))
-    safe.sort(key=lambda x: (0 if x["level"] == "低" else 1))
+    # 排序
+    level_order = {"极危": 0, "高危": 1, "中危": 2, "警惕": 3, "安全": 4, "绝对安全": 5}
+    dangerous_old.sort(key=lambda x: level_order.get(x["level"], 99))
+    safe_old.sort(key=lambda x: -level_order.get(x["level"], -1))
 
-    summary = ""
-    if dangerous:
-        top_danger = [d["name"] for d in dangerous[:5]]
-        summary = f"⚡ 危险牌: {' '.join(top_danger)}··· 可能被荣和，避免打出"
-    
+    # Top 危险/安全
+    matrix_list = list(safety_matrix.values())
+    matrix_list.sort(key=lambda x: x.overall_safety)
+    top_danger = matrix_list[:10]
+
+    matrix_list.sort(key=lambda x: -x.overall_safety)
+    top_safe = matrix_list[:10]
+
+    # 摘要
+    summary_parts = []
+    if top_danger:
+        danger_strs = [t.name for t in top_danger[:5]
+                       if t.overall_level in ("极危", "高危")]
+        if danger_strs:
+            summary_parts.append(f"⚡ {'·'.join(danger_strs)}")
+    if top_safe:
+        safe_strs = [t.name for t in top_safe[:5]
+                     if t.overall_level in ("安全", "绝对安全")]
+        if safe_strs:
+            summary_parts.append(f"✅ {'·'.join(safe_strs)}")
+    summary = "  |  ".join(summary_parts)
+
     return DefenseInfo(
-        dangerous_tiles=dangerous[:10],
-        safe_tiles=safe[:10],
+        dangerous_tiles=dangerous_old[:10],
+        safe_tiles=safe_old[:10],
         summary=summary,
+        safety_matrix=safety_matrix,
+        top_danger=top_danger,
+        top_safe=top_safe,
     )
 
 
@@ -203,7 +383,8 @@ def analyze_defense(discards: Dict[int, List[int]],
 def rank_discard_options(tiles: List[int],
                          melds: List[List[int]],
                          remaining: Dict[int, int],
-                         discards: Dict[int, List[int]]) -> List[DiscardOption]:
+                         discards: Dict[int, List[int]],
+                         opponent_melds: Optional[Dict[int, List[List[int]]]] = None) -> List[DiscardOption]:
     """出牌推荐（向听数优先 + 进张数 + 防守评分）
     
     Args:
@@ -211,13 +392,14 @@ def rank_discard_options(tiles: List[int],
         melds: 副露
         remaining: 剩余牌池
         discards: 各家舍牌（用于防守分析）
+        opponent_melds: 各家副露（用于增强防守分析）
     """
     # 用已有出牌分析
     raw_advice = core_discard_analysis(tiles, melds, remaining)
     if not raw_advice:
         return []
 
-    # 计算舍牌统计
+    # 计算各对手舍牌统计
     discard_counts: Dict[int, int] = {}
     for seat, d_tiles in discards.items():
         for t in d_tiles:
@@ -226,35 +408,59 @@ def rank_discard_options(tiles: List[int],
     options = []
     for da in raw_advice:
         tile_code = da["discard"]
-        total_discarded = discard_counts.get(tile_code, 0)
+        tile_type = classify_tile_type(tile_code)
 
-        # 危险等级
-        if total_discarded >= 2:
-            danger_level = "低"
-            reason = f"已出{total_discarded}张，安全"
-        elif total_discarded == 1:
-            danger_level = "中"
-            reason = f"已出1张，半生"
+        # 全桌总共出过多少张
+        global_count = discard_counts.get(tile_code, 0)
+
+        # 危险等级：用新安全度函数
+        base = _safety_score(tile_type, global_count)
+        danger_level_num = base
+
+        # 如果有对手副露信息，做精细调整
+        if opponent_melds:
+            for seat in (1, 2, 3):
+                adj = _per_opponent_adjust(base, tile_code, seat, discards, opponent_melds)
+                if adj < danger_level_num:
+                    danger_level_num = adj
+
+        danger_level_num = max(0, min(100, danger_level_num))
+        danger_level_str = _safety_level(danger_level_num)
+
+        # 来源描述
+        if global_count >= 2:
+            reason = f"已出{global_count}张"
+        elif global_count == 1:
+            reason = f"已出1张"
         else:
-            suit, _ = decode(tile_code)
-            if suit in (FENG, JIAN):
-                danger_level = "中"
+            if tile_type == "字牌":
                 reason = "生牌(字)"
             else:
-                danger_level = "高"
-                reason = "生牌，可能点炮"
+                reason = "生牌"
+
+        if danger_level_num <= 20:
+            danger_prefix = "极危"
+        elif danger_level_num <= 40:
+            danger_prefix = "高危"
+        elif danger_level_num <= 60:
+            danger_prefix = "中危"
+        else:
+            danger_prefix = None
+
+        if danger_prefix:
+            reason = f"{danger_prefix}·{reason}"
 
         options.append(DiscardOption(
             tile=tile_code,
             name=tile_name(tile_code),
             post_shanten=da["post_shanten"],
             acceptance=da["acceptance"],
-            danger_level=danger_level,
+            danger_level=danger_level_str,
             reason=reason,
         ))
 
     # 同向听数内按(危险等级低优先, 进张数高优先)
-    level_order = {"低": 0, "中": 1, "高": 2}
+    level_order = {"极危": 0, "高危": 1, "中危": 2, "警惕": 3, "安全": 4, "绝对安全": 5}
     options.sort(key=lambda o: (o.post_shanten, level_order.get(o.danger_level, 3), -o.acceptance))
     return options
 
@@ -534,7 +740,7 @@ def full_analysis(state: GameState, use_monte_carlo: bool = False,
 
     # 3. 出牌建议
     discard_options = rank_discard_options(
-        state.hand, state.melds, remaining, state.discards,
+        state.hand, state.melds, remaining, state.discards, state.opponent_melds,
     ) if len(state.hand) >= 14 or (len(state.hand) >= 13 and not state.is_self_drawn) else []
 
     # 4. 听牌分析
@@ -554,7 +760,7 @@ def full_analysis(state: GameState, use_monte_carlo: bool = False,
         )
 
     # 6. 防守分析
-    defense = analyze_defense(state.discards, remaining)
+    defense = analyze_defense(state.discards, state.opponent_melds, remaining)
 
     # 7. 蒙特卡洛模拟
     mc_results = None

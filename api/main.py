@@ -122,6 +122,9 @@ class DefenseResp(BaseModel):
     dangerous_tiles: List[dict] = Field(default_factory=list)
     safe_tiles: List[dict] = Field(default_factory=list)
     summary: str = ""
+    safety_matrix: Optional[dict] = None
+    top_danger: Optional[List[dict]] = None
+    top_safe: Optional[List[dict]] = None
 
 
 class GameAnalyzeResponse(BaseModel):
@@ -140,6 +143,58 @@ class GameAnalyzeResponse(BaseModel):
 
 
 # ── 辅助函数 ─────────────────────────────────────────
+
+def _serialize_tile_safety(ts) -> dict:
+    """将 TileSafety dataclass 转为可 JSON 序列化的 dict"""
+    return {
+        "tile": ts.tile,
+        "name": ts.name,
+        "tile_type": ts.tile_type,
+        "overall_safety": ts.overall_safety,
+        "overall_level": ts.overall_level,
+        "overall_reason": ts.overall_reason,
+        "per_opponent": [
+            {
+                "seat": os.seat,
+                "safety": os.safety,
+                "level": os.level,
+                "reason": os.reason,
+            }
+            for os in ts.per_opponent
+        ],
+    }
+
+
+def _serialize_defense(defense) -> DefenseResp:
+    """序列化 DefenseInfo → DefenseResp"""
+    if defense is None:
+        return DefenseResp()
+    
+    safety_matrix = None
+    top_danger = None
+    top_safe = None
+    
+    if hasattr(defense, 'safety_matrix') and defense.safety_matrix:
+        safety_matrix = {
+            str(tile_code): _serialize_tile_safety(ts)
+            for tile_code, ts in defense.safety_matrix.items()
+        }
+    
+    if hasattr(defense, 'top_danger') and defense.top_danger:
+        top_danger = [_serialize_tile_safety(ts) for ts in defense.top_danger]
+    
+    if hasattr(defense, 'top_safe') and defense.top_safe:
+        top_safe = [_serialize_tile_safety(ts) for ts in defense.top_safe]
+    
+    return DefenseResp(
+        dangerous_tiles=defense.dangerous_tiles if defense.dangerous_tiles else [],
+        safe_tiles=defense.safe_tiles if defense.safe_tiles else [],
+        summary=defense.summary or "",
+        safety_matrix=safety_matrix,
+        top_danger=top_danger,
+        top_safe=top_safe,
+    )
+
 
 def tile_to_info(code: int) -> TileInfo:
     suit, rank = decode(code)
@@ -305,11 +360,7 @@ async def game_analyze(req: GameAnalyzeRequest):
             discard_options=[_discard_option_to_resp(o) for o in analysis.discard_options],
             action_options=[_action_option_to_resp(o) for o in analysis.action_options],
             listen_analysis=_serialize_listen(analysis.listen_analysis) if analysis.listen_analysis else None,
-            defense=DefenseResp(
-                dangerous_tiles=analysis.defense.dangerous_tiles if analysis.defense else [],
-                safe_tiles=analysis.defense.safe_tiles if analysis.defense else [],
-                summary=analysis.defense.summary if analysis.defense else "",
-            ),
+            defense=_serialize_defense(analysis.defense),
             hand_display=" ".join(tile_name(t) for t in req.hand),
             monte_carlo=analysis.monte_carlo,
         )

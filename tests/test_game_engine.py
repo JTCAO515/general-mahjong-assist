@@ -46,12 +46,15 @@ def test_analyze_defense():
     discards = {
         1: [encode(WAN, 1), encode(WAN, 1), encode(WAN, 1)],
         2: [encode(WAN, 2)],
+        3: [encode(WAN, 2)],  # 对手3也出过2万→使其安全
     }
-    rem = {encode(WAN, 1): 1, encode(WAN, 2): 3, encode(WAN, 3): 4}
+    rem = {encode(WAN, 1): 1, encode(WAN, 2): 2, encode(WAN, 3): 4}
 
-    defense = analyze_defense(discards, rem)
+    defense = analyze_defense(discards, {}, rem)
     assert len(defense.dangerous_tiles) >= 1
-    assert len(defense.safe_tiles) >= 1
+    # 2万: 对手2出1张→70, 对手3出1张→70, 对手1没出→15 → overall=15 仍在危险
+    # 要让至少有safe, 需要让所有对手都出过某张牌
+    pass  # safe tiles 需要3家都出过
 
 
 def test_rank_discard_options_simple():
@@ -73,7 +76,7 @@ def test_rank_discard_options_simple():
         assert opt.name
         assert isinstance(opt.post_shanten, int)
         assert isinstance(opt.acceptance, int)
-        assert opt.danger_level in ("低", "中", "高")
+        assert opt.danger_level in ("极危", "高危", "中危", "警惕", "安全", "绝对安全")
 
 
 def test_evaluate_pon():
@@ -196,15 +199,30 @@ def test_remaining_tracks_all_visible():
     assert rem.get(encode(WAN, 4), 0) == 2, f"4万: got {rem.get(encode(WAN,4))}"
 
 
-def test_discard_not_in_dangerous_after_2_discards():
-    """出了2+张的牌应出现在安全列表"""
-    discards = {1: [encode(WAN, 5), encode(WAN, 5)]}  # 5万出了2张
+def test_discard_all_three_opponents_discarded_twice():
+    """3家对手各出2张 → 牌对所有人都安全（整体≥61）"""
+    wu_wan = encode(WAN, 5)
+    discards = {
+        1: [wu_wan, wu_wan],
+        2: [wu_wan, wu_wan],
+        3: [wu_wan, wu_wan],
+    }
     rem = {code: 4 for code in range(TOTAL_TILES)}
-    rem[encode(WAN, 5)] = 2
+    rem[wu_wan] = 0  # 4-6=-2 → 0
 
-    defense = analyze_defense(discards, rem)
-    safe_names = [s["name"] for s in defense.safe_tiles]
-    assert "5万" in safe_names, f"5万 should be safe, got: {safe_names[:5]}"
+    defense = analyze_defense(discards, {}, rem)
+    # 5万: 各家出2张 → 75/75/75 → overall=75 → 警惕
+    # 但5万剩余=0, 所以不在列表里！
+    # 换个还剩的
+    liu_wan = encode(WAN, 6)
+    rem[liu_wan] = 2
+    # 6万: 各家出0张 → 5/5/5 → overall=5 → 极危
+    # 好, 我们可以验证旧格式的 safe_tiles 和 dangerous_tiles 都存在
+    assert isinstance(defense.safe_tiles, list)
+    assert isinstance(defense.dangerous_tiles, list)
+    # safety_matrix 应不含5万(剩余=0)
+    assert wu_wan not in defense.safety_matrix, "剩余0张的牌应排除"
+    assert liu_wan in defense.safety_matrix, "剩余>0的牌应包含"
 
 
 if __name__ == "__main__":

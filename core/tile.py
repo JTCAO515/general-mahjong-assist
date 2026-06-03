@@ -241,6 +241,27 @@ def remaining_pool(hand: List[int], discards: Dict[int, List[int]] = None,
     return remaining
 
 
+# ── 牌分类 ────────────────────────────────────────────
+
+def classify_tile_type(code: int) -> str:
+    """判断牌的类型：字牌 / 幺九 / 中张
+
+    Args:
+        code: 牌编码 0-131
+
+    Returns:
+        "字牌" — 风牌 (东南西北) 或 箭牌 (中发白)
+        "幺九" — 数牌 1 或 9 点
+        "中张" — 数牌 2-8 点
+    """
+    suit, rank = decode(code)
+    if suit in (FENG, JIAN):
+        return "字牌"
+    if rank in (1, 9):
+        return "幺九"
+    return "中张"
+
+
 def count_available(tile_code: int, remaining: Dict[int, int]) -> int:
     """单张牌的剩余张数"""
     return remaining.get(tile_code, 0)
